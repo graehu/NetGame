@@ -34,8 +34,6 @@
 
 #endif
 
-
-
 #include <string.h>
 #include <assert.h>
 #include <stdio.h>
@@ -49,7 +47,7 @@ inline bool InitializeSockets()
 	int error = WSAStartup(MAKEWORD(2,2), &WsaData);
 	return (error != 0);
 	#else
-	return true;
+	return false;
 	#endif
 }
 

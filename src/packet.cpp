@@ -12,7 +12,7 @@ packet::~packet()
 	delete mData;
 }
 ///this function is problematic for some reason
-bool packet::setAlloc(int aAlloc)
+bool packet::setAlloc(unsigned int aAlloc)
 {
 	if(aAlloc > mAlloc)
 	{

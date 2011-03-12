@@ -1,7 +1,7 @@
 #ifndef PACKET_H
 #define PACKET_H
 
-#include <string.h>
+#include <cstring>
 
 /// May want to write something to keep a track of what data is going into this.
 
@@ -13,7 +13,7 @@ class packet
 
 	bool pushData(const unsigned char aData[], unsigned int aSize);
 	bool clearPacket(void){mSize = 0; return false;}
-	bool setAlloc(int aAlloc);
+	bool setAlloc(unsigned int aAlloc);
 	unsigned int getSize(void){return mSize;}
 	unsigned char* getData(void){return mData;}
 
@@ -32,7 +32,9 @@ class packet
 			delete temp;
 
 			mAlloc = (mSize + size)*2;
+
 		}
+
 		for(unsigned int i = 0; i < size; i++)
 		{
 			if (i > 0)

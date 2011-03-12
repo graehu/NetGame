@@ -12,7 +12,7 @@ using namespace net;
 
 const int ServerPort = 8000;
 const int ClientPort = 8001;
-const unsigned short ProtocolId = 80;//0xf00d;
+const unsigned short ProtocolId = 0xf00d;//80;
 const float DeltaTime = 1.0f / 30.0f;
 const float SendRate = 1.0f / 30.0f;
 const float TimeOut = 10.0f;
@@ -21,7 +21,7 @@ const int PacketSize = 256;
 
 // ----------------------------------------------
 
-int main( int argc, char * argv[] )
+int main(int argc, char * argv[])
 {
 	// parse command line
   //random comment
@@ -173,7 +173,7 @@ int main( int argc, char * argv[] )
 			statsAccumulator -= 0.25f;
 		}
 
-		waitsecs( DeltaTime );
+		waitsecs(DeltaTime);
 	}
 
 	getchar();
