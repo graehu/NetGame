@@ -2,10 +2,9 @@
 #define CONNECTION_H
 
 #include "reliabilitySystem.h"
-#include "socket.h" //has address in it.
+#include "flowControl.h"
+#include "socket.h" /// has address in it.
 #include "packet.h"
-
-//#include <list>
 
 ///friendly user-data-group encapsulator
 
@@ -13,7 +12,7 @@
 ///{
 ///short protocolId;    // this is just a security measure
 ///short sendKey;       // this is the key you send, so as they can directly access you in their mail List
-///short recieveKey;    // this is the key to access them in your mailList
+///short ReceiveKey;    // this is the key to access them in your mailList
 ///}
 
 namespace net
@@ -27,20 +26,15 @@ public:
 
     connection(unsigned short aProtocolId, float aTimeout, unsigned int aMax_sequence = 0xFFFFFFFF );
     virtual ~connection();
-    bool start(int port);
+    bool start(int aPort);
     void stop();
     void connect(const address & address);
 
-    bool isRunning() const;                 ///GOING TO DELETE YOU HAHAHA
-    void listen();                          ///GOING TO DELETE YOU HAHAHA
-    bool isConnecting() const;              ///GOING TO DELETE YOU HAHAHA
-    bool connectFailed() const;             ///GOING TO DELETE YOU HAHAHA
-    bool isConnected() {return connected;}  ///GOING TO DELETE YOU HAHAHA
-    bool isListening() const;               ///GOING TO DELETE YOU HAHAHA
+    bool isConnected(void) {return connected;}
 
     void update(float deltaTime);
-    bool sendPacket(const unsigned char data[], unsigned int size, unsigned short key = 0);
-    int receivePacket(unsigned char data[], int size);
+    bool sendPacket(unsigned short aKey, float aDeltaTime);
+    int receivePacket(unsigned int aSize);
     int getHeaderSize() const;
 
     ReliabilitySystem & getReliabilitySystem()
@@ -54,22 +48,10 @@ public:
 
 protected:
 
-    void onStart() {}
-    void onStop() {}
-    void onConnect() {}
-    void onDisconnect() {}
-
-    /// Utitlity funcitions
-
-    void writeInit(unsigned char * init, unsigned short sendKey, unsigned short recieveKey);
-    void readInit(const unsigned char * init, unsigned short & sendKey, unsigned short & recieveKey);
-    void writeHeader(unsigned char * header, unsigned short sendKey, unsigned int sequence, unsigned int ack, unsigned int ack_bits);
-    void readHeader(const unsigned char * header,unsigned short & sendKey, unsigned int & sequence, unsigned int & ack, unsigned int & ack_bits);
-
-
+    packet mReceivePacket;
+	packet mSendPacket;
+    unsigned int mPort;
 private:
-
-
 
     enum state
     {
@@ -79,19 +61,20 @@ private:
         eConnected
     };
 
-
-    struct sender                                            ///this happened after the great merge of reliability and connection.
+    struct sender
     {
         sender(unsigned int max):
 			mStatistics(max),
 			mState(eDisconnected),
-			mTimeoutAccumulator(0){};
-
+			mTimeoutAccumulator(0),
+			mSendAccumulator(0){};
 
         state mState;
         float mTimeoutAccumulator;
+        float mSendAccumulator;
         address mAddress;
         ReliabilitySystem mStatistics;
+        FlowControl mFlow;
     };
 
     unsigned short mProtocolId;                                  /// the protocal id
@@ -107,7 +90,6 @@ private:
 
     float mSendAccumulator;                                      /// this is so as the rate at which initialisation packets are sent
                                                                 /// can be maintained
-	packet mPacket;
 };
 
 }

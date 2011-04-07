@@ -31,6 +31,11 @@
 		<Compiler>
 			<Add option="-Wall" />
 		</Compiler>
+		<Linker>
+			<Add option="-lSDL" />
+			<Add option="-lGL" />
+			<Add option="-lGLU" />
+		</Linker>
 		<Unit filename="../src/address.cpp" />
 		<Unit filename="../src/connection.cpp" />
 		<Unit filename="../src/entity.cpp" />
@@ -43,16 +48,21 @@
 		<Unit filename="../src/header/game.h" />
 		<Unit filename="../src/header/net.h" />
 		<Unit filename="../src/header/packet.h" />
+		<Unit filename="../src/header/packetDef.h" />
 		<Unit filename="../src/header/packetqueue.h" />
 		<Unit filename="../src/header/player.h" />
 		<Unit filename="../src/header/reliabilitySystem.h" />
+		<Unit filename="../src/header/renderer.h" />
 		<Unit filename="../src/header/server.h" />
 		<Unit filename="../src/header/socket.h" />
 		<Unit filename="../src/main.cpp" />
 		<Unit filename="../src/net.cpp" />
 		<Unit filename="../src/packet.cpp" />
+		<Unit filename="../src/packetDef.cpp" />
 		<Unit filename="../src/packetqueue.cpp" />
+		<Unit filename="../src/player.cpp" />
 		<Unit filename="../src/reliabilitySystem.cpp" />
+		<Unit filename="../src/renderer.cpp" />
 		<Unit filename="../src/socket.cpp" />
 		<Extensions>
 			<code_completion />

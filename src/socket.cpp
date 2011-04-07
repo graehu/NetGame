@@ -51,7 +51,7 @@ bool Socket::Open(unsigned short port)
 			Close();
 			return false;
 		}
-	
+
 	#elif PLATFORM == PLATFORM_WINDOWS
 
 		DWORD nonBlocking = 1;
@@ -62,10 +62,10 @@ bool Socket::Open(unsigned short port)
 			return false;
 		}
 	#endif
-		
+
 	return true;
 }
-	
+
 void Socket::Close()
 {
 	if (socket != 0)
@@ -78,12 +78,12 @@ void Socket::Close()
 		socket = 0;
 	}
 }
-	
+
 bool Socket::IsOpen() const
 {
 	return socket != 0;
 }
-	
+
 bool Socket::Send(const address & destination, const void * data, int size)
 {
 	assert(data);
@@ -102,7 +102,7 @@ bool Socket::Send(const address & destination, const void * data, int size)
 	int sent_bytes = sendto(socket, (const char*)data, size, 0, (sockaddr*)&address, sizeof(sockaddr_in));
 	return sent_bytes == size;
 }
-	
+
 int Socket::Receive(address & sender, void * data, int size)
 {
 	assert(data);
@@ -110,11 +110,11 @@ int Socket::Receive(address & sender, void * data, int size)
 
 	if (socket == 0)
 		return false;
-	
+
 	#if PLATFORM == PLATFORM_WINDOWS
 		typedef int socklen_t;
 	#endif
-	
+
 	sockaddr_in from;
 	socklen_t fromLength = sizeof(from);
 	int received_bytes = recvfrom(socket, (char*)data, size, 0, (sockaddr*)&from, &fromLength);

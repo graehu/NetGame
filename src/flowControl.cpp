@@ -10,7 +10,7 @@ using namespace net;
 
 FlowControl::FlowControl()
 {
-	printf( "flow control initialized\n" );
+	//printf( "flow control initialized\n" );
 	Reset();
 }
 
@@ -30,14 +30,14 @@ void FlowControl::Update( float deltaTime, float rtt )
 	{
 		if ( rtt > RTT_Threshold )
 		{
-			printf( "*** dropping to bad mode ***\n" );
+			///printf( "*** dropping to bad mode ***\n" );
 			mode = Bad;
 			if ( good_conditions_time < 10.0f && penalty_time < 60.0f )
 			{
 				penalty_time *= 2.0f;
 				if ( penalty_time > 60.0f )
 					penalty_time = 60.0f;
-				printf( "penalty time increased to %.1f\n", penalty_time );
+				///printf( "penalty time increased to %.1f\n", penalty_time );
 			}
 			good_conditions_time = 0.0f;
 			penalty_reduction_accumulator = 0.0f;
@@ -52,7 +52,7 @@ void FlowControl::Update( float deltaTime, float rtt )
 			penalty_time /= 2.0f;
 			if ( penalty_time < 1.0f )
 				penalty_time = 1.0f;
-			printf( "penalty time reduced to %.1f\n", penalty_time );
+			///printf( "penalty time reduced to %.1f\n", penalty_time );
 			penalty_reduction_accumulator = 0.0f;
 		}
 	}
@@ -66,7 +66,7 @@ void FlowControl::Update( float deltaTime, float rtt )
 
 		if ( good_conditions_time > penalty_time )
 		{
-			printf( "*** upgrading to good mode ***\n" );
+			///printf( "*** upgrading to good mode ***\n" );
 			good_conditions_time = 0.0f;
 			penalty_reduction_accumulator = 0.0f;
 			mode = Good;

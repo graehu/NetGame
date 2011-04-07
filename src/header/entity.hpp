@@ -4,20 +4,6 @@
 #include <vector>
 #include "packet.h"
 
-struct coords
-{
-    int x;
-    int y;
-};
-
-enum entityType
-{
-    eEntity = 0,
-    eBot,
-    ePlayer
-};
-
-
 
 class entity
 {
@@ -25,19 +11,48 @@ class entity
 		entity();
 		~entity();
 
-    unsigned char* updatePacket();  /// override in defined, make sure to call baseclass version too
-    unsigned char* initPacket();    /// override in defined, make sure to call baseclass version too
-    unsigned short getId(void){return mId;}   /// return his position in some array
+
+    void readInitPacket(void);
+    void readUpdatePacket(void);
+
+    void writeInitPacket(void);    /// override in defined, make sure to call baseclass version too
+    void writeUpdatePacket(void);  /// override in defined, make sure to call baseclass version too
+    entityType getType(void){return mType;}
+    int getXPos(void){return mPx;}
+    int getYPos(void){return mPy;}
+    int getXVelocity(void){return mVx;}
+    int getYVelocity(void){return mVy;}
+    unsigned char getCommands(void){return mCommand;}
+
+    void setXPos(int x){mPx = x;}
+    void setYPos(int y){mPy = y;}
+    void setXVelocity(int x){mVx = x;}
+    void setYVelocity(int y){mVy = y;}
+    void setCommands(unsigned char command){mCommand = command;}
+
+    void move(void);
+
+
+
+
+    void setPacket(packet* aPacket);
+    //unsigned short getReceivedKey(void){return mReceivedKey;}   /// return his position in some array
 
 	protected:
+
+    packet* mPacket;
+    entityType mType;
+
 	private:
 
-    unsigned short mId;
-    std::vector<unsigned short> mViewers; /// all the people I should be sent to. i.e. who can see me.
-    coords mPosition;
-    coords mVelocity;
-    entityType mType;
-	packet mPacman;
+	//bool mInitialised;
+
+    //unsigned short mSendKey; /// this array
+    //unsigned short mReceivedKey; /// their array
+    //std::vector<std::pair<entityType*,unsigned short*> > mEntities; ///things this dude knows of.
+    int mPx, mPy, mVx, mVy; ///positions and velocities
+    int mNewPx, mNewPy, mNewVx, mNewVy;
+    unsigned char mCommand;
 
 };
 

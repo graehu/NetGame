@@ -12,6 +12,7 @@ connection::connection(unsigned short aProtocolId, float aTimeout, unsigned int 
     connected = false;
     mMailList.clear();
     mSendAccumulator = 0;
+    //mHeader = 16;
 }
 
 connection::~connection()
@@ -20,11 +21,14 @@ connection::~connection()
         stop();
 }
 
-bool connection::start(int nPort)
+bool connection::start(int aPort)
 {
     assert(!mRunning);
-    printf("start connection on port %d\n", nPort);
-    if (!mSocket.Open(nPort))
+    mPort = aPort;
+    mSendPacket.setAlloc(mSendPacket.getHeaderSize());
+    mReceivePacket.setAlloc(mReceivePacket.getHeaderSize());
+    printf("start connection on port %d\n", aPort);
+    if (!mSocket.Open(aPort))
         return false;
     mRunning = true;
     return true;
@@ -65,7 +69,7 @@ void connection::connect(const address & nAddress)
         /// add the key onto newConKeys and pop it off of the keyPool
         /// as it is now in use.
 
-        mNewConnKeys.push_back(mKeyPool.back()); ///recieve key
+        mNewConnKeys.push_back(mKeyPool.back()); ///Receive key
         mKeyPool.pop_back();
 
         return;
@@ -83,7 +87,7 @@ void connection::connect(const address & nAddress)
     nMailer->mTimeoutAccumulator = 0.0f;
     unsigned short sendKey = 0;
     mMailList.push_back(std::pair<sender*, unsigned short>(nMailer, sendKey));
-    mNewConnKeys.push_back(mMailList.size()-1); /// recieve key
+    mNewConnKeys.push_back(mMailList.size()-1); /// Receive key
 }
 
 
@@ -91,10 +95,13 @@ void connection::update(float deltaTime)
 {
     assert(mRunning);
 
+    bool accumRestart = false;
+
     if(mMailList.size() == 0)
         return;
     if(mSendAccumulator > 1.0f / 30.0f)  /// send if sendAccumulator is greater than 1/30th,
             mSendAccumulator = 0;
+
     mSendAccumulator += deltaTime; /// advance the sendAccumulator by deltaTime, important for sending connection packets
 
 
@@ -118,32 +125,18 @@ void connection::update(float deltaTime)
             if(mSendAccumulator > 1.0f / 30.0f)  ///send if sendAccumulator is greater than 1/30th,
             {
                 ///so roughly 30 a second if send accumulator is a fraction of a second
-                mSendAccumulator = 0;
-                //unsigned char packet[6];
-                //unsigned short sendKey = mMailList[i].second;
 
                 /// i is this elements current position in the array, so if this was the first element
                 /// i would be zero.
 
-                //writeInit(packet, (unsigned short)i, (unsigned short)sendKey);
-				//mPacket.clearPacket();
+                ///Using writeData is a little hacky, but for now it will do.
 
-				mPacket.pushData((unsigned short)(mProtocolId*2));
-				mPacket.pushData((unsigned short)i); //may want to make this an unsigned short
-				mPacket.pushData((unsigned short)mMailList[i].second);
+				mSendPacket.writeData((unsigned short)(mProtocolId*2),0);
+				mSendPacket.writeData((unsigned short)mMailList[i].second,2);
+				mSendPacket.writeData((unsigned short)i,4);
 
-				/*void connection::writeInit(unsigned char * init, unsigned short sendKey, unsigned short recieveKey)
-				{
-					mPacket.writeShort(init, mProtocolId*2); /// protocolId*2 this is so as we can differentiate between an init packet and a normal packet
-					mPacket.writeShort(init + 2, sendKey);
-					mPacket.writeShort(init + 4, recieveKey);
-				}*/
-
-
-				//printf("size: %i\n",mPacket.getSize());
-
-                mSocket.Send(mMailList[i].first->mAddress, mPacket.getData(), 6);
-				mPacket.clearPacket();
+                mSocket.Send(mMailList[i].first->mAddress, mSendPacket.getData(), 6);
+				mSendPacket.clearPacket();
             }
         }
 
@@ -167,7 +160,9 @@ void connection::update(float deltaTime)
                 );
 
                 mMailList[i].first->mState = eDisconnected;
+                mMailList[i].first->mFlow.Reset();
                 mMailList[i].second = 0;
+
 
                 for(unsigned int ii = 0; ii < mNewConnKeys.size(); ii++)
                 {
@@ -206,6 +201,7 @@ void connection::update(float deltaTime)
                     mMailList[i].first->mAddress.getPort()
                 );
                 mMailList[i].first->mState = eDisconnected;
+                mMailList[i].first->mFlow.Reset();
                 mMailList[i].second = 0;
                 mKeyPool.push_back(i);
                 continue;
@@ -216,14 +212,17 @@ void connection::update(float deltaTime)
 
 }
 
-bool connection::sendPacket( const unsigned char aData[], unsigned int aSize, unsigned short aKey)
+bool connection::sendPacket(unsigned short aKey, float aDeltaTime)
 {
+
+    ///it would be cool to somehow add FlowControl to this function.
+
     assert(mRunning);
 
     if (mMailList.size() == 0 )
         return false;
 
-    if (mMailList.size() < aKey)
+    if (mMailList.size() <= aKey)
         return false;
 
     if (mMailList[aKey].first->mAddress.getAddress() == 0 )
@@ -231,106 +230,64 @@ bool connection::sendPacket( const unsigned char aData[], unsigned int aSize, un
 
     if( mMailList[aKey].first->mState != eConnected)
         return false;
-
-    unsigned int header = 16;
 	///old way of doing things
-    /*
-	static unsigned int currentAlloc;
+    mMailList[aKey].first->mFlow.Update(aDeltaTime, mMailList[aKey].first->mStatistics.GetRoundTripTime() * 1000.0f);
 
-    static unsigned char* packet;
+    mMailList[aKey].first->mSendAccumulator += aDeltaTime;
 
-    ///make sure packet isn't null
-    if(packet == NULL)
+    float sendRate = mMailList[aKey].first->mFlow.GetSendRate();
+    float sendAccumulator = mMailList[aKey].first->mSendAccumulator;
+    bool error = 0;
+
+    if(sendAccumulator > (1.0f/sendRate))
     {
-         packet = new unsigned char[header+size];
-         currentAlloc = header + size;
+
+    mMailList[aKey].first->mSendAccumulator = 0;
+
+    //sexy new way (no need for a local packet!)
+	mSendPacket.writeProtocolId(mProtocolId); ///short
+	mSendPacket.writeKey(mMailList[aKey].second); /// send key ///short
+	mSendPacket.writeSequence(mMailList[aKey].first->mStatistics.GetLocalSequence()); /// sequence
+	mSendPacket.writeAck(mMailList[aKey].first->mStatistics.GetRemoteSequence()); /// ack
+	mSendPacket.writeAckBits(mMailList[aKey].first->mStatistics.GenerateAckBits()); /// acked bits
+	mMailList[aKey].first->mStatistics.PacketSent(mSendPacket.getAlloc());
+
+	error = mSocket.Send(mMailList[aKey].first->mAddress, mSendPacket.getData(), mSendPacket.getEnd());
+	mSendPacket.clearPacket(); /// clears the packet so as you can start pushing data in from the start again
+	//printf("sending packet\n");
     }
-
-    ///set the packet to be the highest value that ever comes into the function
-    if (currentAlloc < (header + size))
-    {
-        delete packet;
-        packet = new unsigned char[header+size];
-    }
-
-    unsigned int seq = mMailList[key].first->mStatistics.GetLocalSequence();
-    unsigned int ack = mMailList[key].first->mStatistics.GetRemoteSequence();
-    unsigned int ack_bits = mMailList[key].first->mStatistics.GenerateAckBits();
-
-    writeHeader(packet, key, seq, ack, ack_bits);
-
-    mMailList[key].first->mStatistics.PacketSent(size);
-
-	memcpy(&packet[header], data, size);
-
-	return mSocket.Send(mMailList[key].first->mAddress, packet, size + header);
-	*/
-
-	//sexy new way (no need for a local packet!)
-	mPacket.pushData(mProtocolId);
-	mPacket.pushData(aKey); //send key
-	mPacket.pushData(mMailList[aKey].first->mStatistics.GetLocalSequence()); //sequence
-	mPacket.pushData(mMailList[aKey].first->mStatistics.GetRemoteSequence()); //ack
-	mPacket.pushData(mMailList[aKey].first->mStatistics.GenerateAckBits()); //acked bits
-	mPacket.pushData(aData, aSize); //copy packet data
-	mMailList[aKey].first->mStatistics.PacketSent(aSize);
-
-	bool error = mSocket.Send(mMailList[aKey].first->mAddress, mPacket.getData(), aSize + header);
-	mPacket.clearPacket(); //clears the packet so as you can start pushing data in from the start again
-	//printf("sending packet2 \n");
 
 	return error;
 }
 
 
-int connection::receivePacket(unsigned char data[], int size)
+int connection::receivePacket(unsigned int aSize)
 {
 	////////////////////////////////////////////////////////////////
 	/// NOTE													 ///
-	/// nothing is done with the data that is recieved as of yet.///
+	/// nothing is done with the data that is Received as of yet.///
 	////////////////////////////////////////////////////////////////
 
     assert(mRunning);
-    unsigned int header = 16;
-
-	/////////////////////////////////////////////////////////////////////////////////////
-	//I don't like this very much, I'd rather be putting data directly into mPacket.   //
-	/////////////////////////////////////////////////////////////////////////////////////
-	/*
-    static unsigned int currentAlloc;
-    static unsigned char* packet;
-
-    ///make sure packet isn't null
-    if(packet == NULL)
-    {
-         packet = new unsigned char[header+size];
-         currentAlloc = header + size;
-    }
-    ///set the packet to be the highest value that ever comes into the function
-    if (currentAlloc < (header + size))
-    {
-        delete packet;
-        packet = new unsigned char[header+size];
-    }
-	*/
-	/////////////////////////////////////////////////////////////////////////////////////
-	/////////////////////////////////////////////////////////////////////////////////////
-
     address nSender;
-	mPacket.setAlloc(size+header);
-	unsigned char* packet = mPacket.getData(); //this method doesn't work so well for some reason...
-	// push this directly into pacman.
-    int bytes_read = mSocket.Receive(nSender, packet, size + header);
+
+    mReceivePacket.clearPacket();
+	mReceivePacket.setAlloc(aSize);
+	unsigned char* packet = mReceivePacket.getData();
+	// push this directly into mReceivePacket.
+    int bytes_read = mSocket.Receive(nSender, packet, aSize);
 
     if (bytes_read == 0)
         return 0;
 
+    mReceivePacket.setEnd(mReceivePacket.getHeaderSize()); /// only reading the mHeader for now
+
     unsigned short security = 0;
 
-    mPacket.readShort(&packet[0], security);
+    security = mReceivePacket.readProtocolId();
 
     if((security != mProtocolId) && (security != (unsigned short)(mProtocolId*2)))
-        return false;
+        return 0;
 
 	bool initPacket = false;
     if(security == (unsigned short)(mProtocolId*2))
@@ -340,8 +297,8 @@ int connection::receivePacket(unsigned char data[], int size)
 
     if(initPacket)
     {
-        printf("recieved init packet \n");
-        mPacket.readShort(&packet[4], security); ///the key they think i sent them.
+        //printf("Received init packet \n");
+        security = mReceivePacket.readUShort(2); ///the key they think i sent them.
 
             if(security < mMailList.size())
             {
@@ -366,15 +323,27 @@ int connection::receivePacket(unsigned char data[], int size)
                 /// Look through all the new connections until you find
                 /// the one that belongs to this sender
                 /// set his sent key to what it's telling you
-                /// then check if it is sending the recieve key correctly
-                mPacket.readShort(&packet[2], security);
+                /// then check if it is sending the Receive key correctly
+                security = mReceivePacket.readUShort(4);
                 mMailList[mNewConnKeys[i]].second = security;
 
-                mPacket.readShort(&packet[4], security);
+                security = mReceivePacket.readUShort(2);
 
                 if(security == mNewConnKeys[i])
                 {
-                    printf("client connected1\n");
+                    ///printf("client connected1\n");
+
+                    printf
+                    (
+                        "Port: %i Connected to: %d.%d.%d.%d:%d\n",
+                        mPort,
+                        nSender.getA(),
+                        nSender.getB(),
+                        nSender.getC(),
+                        nSender.getD(),
+                        nSender.getPort()
+                    );
+
 					/// judging by my output this could be a bad place for these lines.
                     mMailList[security].first->mState = eConnected;
                     connected = true;
@@ -394,11 +363,10 @@ int connection::receivePacket(unsigned char data[], int size)
             }
         }
 
-
         ///if it is a new connection then give it a key if there is one spare in the key pool
         if(!mKeyPool.empty())
         {
-            mPacket.readShort(&packet[2], security);
+            security = mReceivePacket.readUShort(4);
             mMailList[mKeyPool.back()].first->mState = eConnecting;
             mMailList[mKeyPool.back()].first->mAddress = nSender;
             mMailList[mKeyPool.back()].first->mTimeoutAccumulator = 0;
@@ -410,9 +378,9 @@ int connection::receivePacket(unsigned char data[], int size)
 
             return 0;
         }
-        printf("client connecting for first time \n");
+        /// printf("client connecting for first time \n");
 
-        mPacket.readShort(&packet[2], security);
+        security = mReceivePacket.readUShort(4);
 
         sender* nMailer = new sender(mMax_sequence);
         nMailer->mAddress = nSender;
@@ -427,9 +395,8 @@ int connection::receivePacket(unsigned char data[], int size)
     }
     else
     {
-        ///note two is a different thing if it's not an init packet
-        ///it's the access key in this case.
-        mPacket.readShort(&packet[2], security);
+
+        security = mReceivePacket.readUShort(2);
 
         if(security > mMailList.size())
             return 0;
@@ -442,14 +409,25 @@ int connection::receivePacket(unsigned char data[], int size)
                 {
                     /// Look through all the new connections until you find
                     /// the one that belongs to this sender
-                    /// then check if it is sending the recieve key correctly
+                    /// then check if it is sending the Receive key correctly
 
                     //printf("send + 1: %d \n", (int)test);
-                    //printf("recieve + 1: %d \n", (int)security);
+                    //printf("Receive + 1: %d \n", (int)security);
 
                     if(security == mNewConnKeys[i])
                     {
-                        printf("client connected2\n");
+
+                        printf
+                        (
+                            "Port: %i Connected to: %d.%d.%d.%d:%d\n",
+                            mPort,
+                            nSender.getA(),
+                            nSender.getB(),
+                            nSender.getC(),
+                            nSender.getD(),
+                            nSender.getPort()
+                        );
+
                         mMailList[security].first->mState = eConnected;
                         connected = true;
                         ///by this point i must've sent the right key to them
@@ -467,61 +445,25 @@ int connection::receivePacket(unsigned char data[], int size)
                     }
                 }
             }
-            //printf("do we get here? \n");
         }
 
-	connected = true; //legacy
-    unsigned short sendKey = 0;
-    unsigned int packet_sequence = 0;
-    unsigned int packet_ack = 0;
-    unsigned int packet_ack_bits = 0;
-    readHeader(packet, sendKey, packet_sequence, packet_ack, packet_ack_bits);
 
-    mMailList[security].first->mStatistics.PacketReceived(packet_sequence, bytes_read - 14);
+
+	connected = true; //legacy
+    /// unsigned short sendKey = mReceivePacket.readUShort(2); /// removed because i don't think it's needed anymore
+    unsigned int packet_sequence = mReceivePacket.readUInteger(4);
+    unsigned int packet_ack = mReceivePacket.readUInteger(8);
+    unsigned int packet_ack_bits = mReceivePacket.readUInteger(12);
+
+    mMailList[security].first->mStatistics.PacketReceived(packet_sequence, bytes_read - 16); ///WHY DOES THIS SAY 14?!
     mMailList[security].first->mStatistics.ProcessAck(packet_ack, packet_ack_bits);
     mMailList[security].first->mTimeoutAccumulator = 0;
 
+    //memcpy(data, &packet[mHeader], bytes_read - mHeader);
 
-    memcpy(data, &packet[header], bytes_read - header);
-
-    return bytes_read - header;
+    return bytes_read;
     }
 
-    return 1;
-}
 
-/// ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-///Utility Functions
-
-
-void connection::writeInit(unsigned char * init, unsigned short sendKey, unsigned short recieveKey)
-{
-    mPacket.writeShort(init, mProtocolId*2); /// protocolId*2 this is so as we can differentiate between an init packet and a normal packet
-    mPacket.writeShort(init + 2, sendKey);
-    mPacket.writeShort(init + 4, recieveKey);
-}
-
-void connection::readInit(const unsigned char * init, unsigned short & sendKey, unsigned short & recieveKey)
-{
-    mPacket.readShort(init + 2, sendKey);
-    mPacket.readShort(init + 4, recieveKey);
-}
-
-void connection::writeHeader(unsigned char * header, unsigned short  sendKey, unsigned int sequence, unsigned int ack, unsigned int ack_bits)
-{
-    mPacket.writeShort(header, mProtocolId);
-    mPacket.writeShort(header + 2, sendKey);
-    mPacket.writeInteger(header + 4, sequence);
-    mPacket.writeInteger(header + 8, ack);
-    mPacket.writeInteger(header + 12, ack_bits);
-}
-
-
-void connection::readHeader(const unsigned char * header, unsigned short & sendKey, unsigned int & sequence, unsigned int & ack, unsigned int & ack_bits)
-{
-    mPacket.readShort(header + 2, sendKey);
-    mPacket.readInteger(header + 4, sequence);
-    mPacket.readInteger(header + 8, ack);
-    mPacket.readInteger(header + 12, ack_bits);
+    return 0;
 }

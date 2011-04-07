@@ -7,22 +7,25 @@ class player : public entity
 {
 	public:
 
-		player(){};
+		player();
 		~player(){};
+
+    void readInitPacket(void);
+    void readUpdatePacket(void);
+
+    void writeInitPacket();    /// override in defined, make sure to call baseclass version too
+    void writeUpdatePacket();
 
 	protected:
 
-    unsigned char* updatePacket();
-    unsigned char* initPacket();    /// override in defined, make sure to call baseclass version too
-
 	private:
 
-    char name[16];
-    unsigned short strength;
-    unsigned short range;
-    unsigned short defence;
-    unsigned short timestamp;
-    unsigned short health;
+    char mName[16];
+    unsigned short mStrength;
+    unsigned short mDefence;
+    unsigned short mRange;
+    unsigned short mHealth;
+
 
 };
 
