@@ -16,7 +16,7 @@ const int ClientPort = 8001;
 const unsigned short ProtocolId = 0xf00d;//80;
 const float DeltaTime = 1.0f/60.0f;
 const float SendRate = 1.0f / 30.0f;
-const float TimeOut = 10.0f;
+const float TimeOut = 100.0f;
 const int PacketSize = 256;
 
 #define CLIENTS 5
@@ -218,6 +218,7 @@ int main(int argc, char * argv[])
     {
         myNet.update(DeltaTime);
         waitsecs(DeltaTime);
+        if(input(keys) == true) return 0;
         if(myNet.getType() == eClient)
         {
             if(input(keys) == true) return 0;

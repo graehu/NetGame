@@ -53,7 +53,7 @@ bool network::init(netType type, int port)
 	    entity* me = new entity;
 	    mEntities.push_back(me);
 
-        address myAddress(127,0,0,1,8000);
+        address myAddress(192,168,1,125,8000);
         connect(myAddress);
         mEnUpdate.push_back(vector<enInfo>());
         mEnUpdate[0].push_back(enInfo(0,eUpdating));
