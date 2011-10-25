@@ -10,7 +10,7 @@
 #include "packetqueue.h"
 #include "flowControl.h"
 #include "entity.hpp"
-#include "player.h"
+//#include "player.h"
 #include "renderer.h"
 #include "packetDef.h"
 
