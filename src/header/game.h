@@ -1,6 +1,16 @@
 #ifndef GAME_H
 #define GAME_H
 
+//#include <iostream>
+//#include <fstream>
+//#include <string>
+//#include <vector>
+
+#include <SDL/SDL.h>
+
+#include "header/net.h"
+
+
 class game
 {
 	public:
@@ -16,7 +26,8 @@ class game
 
 	private:
 
-	bool running;
+	bool mRunning;
+	network* mNet;
 
 
 };

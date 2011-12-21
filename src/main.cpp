@@ -30,47 +30,9 @@ enum Keys
     eKeysSize
 };
 
-bool input(bool* keys)
-{
-    for(int i = 0; i < eKeysSize; i++)
-        keys[i] = false;
-
-    char* internalKeys = (char*)SDL_GetKeyState(NULL);
-    
-    if (internalKeys['w'])
-      keys[eUp] = true;
-    
-    if (internalKeys['a'])
-      keys[eLeft] = true;
-    
-    if (internalKeys['s'])
-      
-      keys[eDown] = true;
-    
-    if (internalKeys['d'])
-      keys[eRight] = true;
-
-    SDL_Event event;
-
-    while (SDL_PollEvent(&event))
-    {
-        switch (event.type)
-        {
-            case SDL_QUIT:
-            {
-                return true;
-            }
-        }
-    }
-    return false;
-}
-
-
 
 int main(int argc, char * argv[])
 {
-
-
     network myNet(0xF00D, TimeOut);
     bool keys[4];
 
@@ -135,4 +97,38 @@ int main(int argc, char * argv[])
         myNet.draw();
     } 
     return 0;
+}
+
+
+
+
+bool input(bool* keys)
+{
+    for(int i = 0; i < eKeysSize; i++)
+        keys[i] = false;
+
+    char* internalKeys = (char*)SDL_GetKeyState(NULL);
+    
+    if (internalKeys['w'])
+      keys[eUp] = true;
+    if (internalKeys['a'])
+      keys[eLeft] = true;
+    if (internalKeys['s'])
+      keys[eDown] = true;
+    if (internalKeys['d'])
+      keys[eRight] = true;
+
+    SDL_Event event;
+
+    while (SDL_PollEvent(&event))
+    {
+        switch (event.type)
+        {
+            case SDL_QUIT:
+            {
+                return true;
+            }
+        }
+    }
+    return false;
 }

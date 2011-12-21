@@ -1,0 +1,19 @@
+Things that would be cool.
+
+Slight gui...
+Being able to type the address you want to connect to.
+Being able to select if you're a host or not.
+
+(you should be able to play the game single player.)
+
+
+
+Things I've noticed while reading over my work.
+
+
+Packets store a pointer to definitions to check.
+
+
+Packet definition class:
+       Storing a char pointer to identify every instance of a type, replace with enum and single char pointer look-up.
+       

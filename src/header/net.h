@@ -37,12 +37,6 @@ inline void waitsecs(float seconds)
 namespace net
 {
 
-    enum netType
-    {
-        eServer,
-        eClient
-    };
-
     enum entityState
     {
         eUninitialised = 0,
@@ -56,12 +50,11 @@ namespace net
 
         network(unsigned short protocolId, float timeout , unsigned int max_sequence = 0xFFFFFFFF);
         ~network();
-        bool init(netType, int port);
+        bool init(bool aHost, int aPort);
         bool update(float aDeltaTime);
         void draw(void);
         void addEntity(void);
-        netType getType(void){return mType;}
-        entity* getEntity(unsigned int element);
+        entity* getEntity(unsigned int aElement);
         protected:
         private:
 
@@ -69,7 +62,7 @@ namespace net
 
         packetDef mDefines;
 
-        netType mType;
+	bool mHost;
         /// this will have to be something like this eventually
         /// vector<pair<entity*,vector<unsigned short(sendKeys)> > >
         vector<entity*> mEntities;
