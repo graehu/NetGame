@@ -55,6 +55,7 @@ namespace net
         void draw(void);
         void addEntity(void);
         entity* getEntity(unsigned int aElement);
+	bool getType(void){return mHost;}
         protected:
         private:
 

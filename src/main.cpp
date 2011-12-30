@@ -38,13 +38,13 @@ int main(int argc, char * argv[])
 
     if(!(argc >= 2))
     {
-        if(myNet.init(eServer, 8000) == 1)
+        if(myNet.init(true, 8000) == 1)
         {
             bool unbound = true;
             int i = 1;
             while(unbound)
             {
-                if(myNet.init(eClient, 8000+i) == 0)
+                if(myNet.init(false, 8000+i) == 0)
                 {
                     unbound = false;
                 }
@@ -56,7 +56,7 @@ int main(int argc, char * argv[])
     {
         int port = 0;
         if(sscanf(argv[1],"%i",&port))
-            myNet.init(eClient, port);
+            myNet.init(false, port);
         else
             return 0;
     }
@@ -66,30 +66,26 @@ int main(int argc, char * argv[])
         myNet.update(DeltaTime);
         waitsecs(DeltaTime);
         if(input(keys) == true) return 0;
-        if(myNet.getType() == eClient)
+        if(myNet.getType() == false)
         {
             if(input(keys) == true) return 0;
             if(keys[(int)eUp] == true)
             {
-                printf("up\n");
                 myNet.getEntity(0)->setCommands(myNet.getEntity(0)->getCommands()|1);
             }
             else{myNet.getEntity(0)->setCommands(myNet.getEntity(0)->getCommands()&(255-1));}
             if(keys[(int)eLeft] == true)
             {
-                printf("left\n");
                 myNet.getEntity(0)->setCommands(myNet.getEntity(0)->getCommands()|2);
             }
             else{myNet.getEntity(0)->setCommands(myNet.getEntity(0)->getCommands()&(255-2));}
             if(keys[(int)eDown] == true)
             {
-                printf("down\n");
                 myNet.getEntity(0)->setCommands(myNet.getEntity(0)->getCommands()|4);
             }
             else{myNet.getEntity(0)->setCommands(myNet.getEntity(0)->getCommands()&(255-4));}
             if(keys[(int)eRight] == true)
             {
-                printf("right\n");
                 myNet.getEntity(0)->setCommands(myNet.getEntity(0)->getCommands()|8);
             }
             else{myNet.getEntity(0)->setCommands(myNet.getEntity(0)->getCommands()&(255-8));}

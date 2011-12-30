@@ -6,8 +6,6 @@ using namespace net;
 network::network(unsigned short protocolId, float timeout , unsigned int max_sequence) :
   connection(protocolId, timeout, max_sequence)
 {
-  
-  mType = eClient;
   mPacketSize = 256; ///bad, should be passed in constructor or something.
 }
 
@@ -50,9 +48,9 @@ bool network::init(bool aHost, int aPort)
   ///////////////////////////////////////////////////////////////////////////////////////////////////////////
   ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-  if(!start(port))
+  if(!start(aPort))
     {
-      printf("could not start connection on port %d\n", port);
+      printf("could not start connection on port %d\n", aPort);
       return 1;
     }
       
