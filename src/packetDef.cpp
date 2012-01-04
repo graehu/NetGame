@@ -3,12 +3,12 @@
 
 packetDef::packetDef()
 {
-  mPacking = false;
+  m_packing = false;
   ///first define == empty packet.
-  mPacketDefs.push_back(std::pair<std::vector<packType>, unsigned int>());
-  mPacketDefs[0].first.push_back(eBool);
-  mPacketDefs[0].second = 0;
-  mPacketSizeAccumulator = 0;
+  m_packetDefs.push_back(std::pair<std::vector<packType>, unsigned int>());
+  m_packetDefs[0].first.push_back(e_bool);
+  m_packetDefs[0].second = 0;
+  m_packetSizeAccumulator = 0;
 }
 
 packetDef::~packetDef()
@@ -18,52 +18,52 @@ packetDef::~packetDef()
 
 void packetDef::beginPacket(void)
 {
-  if(!mPacking)
+  if(!m_packing)
     {
       //the unsigned short that's being pushed back here is the packet type.
       //i.e. the identifier for this packetdef.
-      mPacking = true;
-      mPacketDefs.push_back(std::pair<std::vector<packType>, unsigned int>());
+      m_packing = true;
+      m_packetDefs.push_back(std::pair<std::vector<packType>, unsigned int>());
       //mPacketDefs.back().first.push_back((char*)typeid(unsigned short).name());
-      mPacketDefs.back().first.push_back(eUShort);
-      mPacketSizeAccumulator += sizeof(unsigned short);
+      m_packetDefs.back().first.push_back(e_UShort);
+      m_packetSizeAccumulator += sizeof(unsigned short);
       return;
     }
-  if(mPacking){printf("packetDef: beginPacket(), error packet already begun\n"); return;}
+  if(m_packing){printf("packetDef: beginPacket(), error packet already begun\n"); return;}
 };
 
 
 void packetDef::endPacket(void)
 {
-  if(!mPacking){printf("packetDef: endPacket(), error haven't begun, so can't end\n"); return;}
-  if(mPacking)
+  if(!m_packing){printf("packetDef: endPacket(), error haven't begun, so can't end\n"); return;}
+  if(m_packing)
     {
-      if(mPacketDefs.back().first.size() == 1 && mPacketDefs.size() > 0)
+      if(m_packetDefs.back().first.size() == 1 && m_packetDefs.size() > 0)
         {
 	  //this happens in the event that nothing useful was pushed back.
 	  //the definition is just abandoned.
-	  mPacketDefs.pop_back();
-	  mPacketSizeAccumulator = 0;
-	  mPacking = false;
+	  m_packetDefs.pop_back();
+	  m_packetSizeAccumulator = 0;
+	  m_packing = false;
 	  return;
         }
       else
         {
-	  mPacketDefs.back().second = mPacketSizeAccumulator;
-	  mPacketSizeAccumulator = 0;
-	  mPacking = false;
+	  m_packetDefs.back().second = m_packetSizeAccumulator;
+	  m_packetSizeAccumulator = 0;
+	  m_packing = false;
 	  return;
         }
     }
 }
 
-char* packetDef::getMembTypeName(unsigned int aDef, unsigned int aMember)
+char* packetDef::getMembTypeName(unsigned int _def, unsigned int _member)
 {
-  if(aDef < mPacketDefs.size())
+  if(_def < m_packetDefs.size())
     {
-    if(aMember < mPacketDefs[aDef].first.size())
+    if(_member < m_packetDefs[_def].first.size())
       {
-	return getNameByType(mPacketDefs[aDef].first[aMember]);
+	return getNameByType(m_packetDefs[_def].first[_member]);
       }
     }
 
@@ -72,38 +72,39 @@ char* packetDef::getMembTypeName(unsigned int aDef, unsigned int aMember)
 } /// which definition, then which member.
 
 
-char* packetDef::getNameByType(packType aType)
+char* packetDef::getNameByType(packType _type)
 {
-  switch(aType)
+  switch(_type)
     {
-    case eBool:
+    case e_bool:
       return (char*)typeid(bool).name();
-    case eUChar:
+    case e_UChar:
       return (char*)typeid(unsigned char).name();
-    case eChar:
+    case e_char:
       return (char*)typeid(char).name();
-    case eUShort:
+    case e_UShort:
       return (char*)typeid(unsigned short).name();
-    case eShort:
+    case e_short:
       return (char*)typeid(short).name();
-    case eUInt:
+    case e_UInt:
       return (char*)typeid(unsigned int).name();
-    case eInt:
+    case e_int:
       return (char*)typeid(int).name();
-    case eFloat:
+    case e_float:
       return (char*)typeid(float).name();
-    case eDouble:
+    case e_double:
       return (char*)typeid(double).name();
     }
   printf("packetDef: not knowing this type");
   assert(false);
+  return (char*)typeid(int).name();
 }
 
 
 unsigned int packetDef::getDefSize(unsigned int aDefID)
 {
-  if(aDefID < mPacketDefs.size())
-    return mPacketDefs[aDefID].second;
+  if(aDefID < m_packetDefs.size())
+    return m_packetDefs[aDefID].second;
   printf("packetDef: getDefSize(), error aDefID too high\n");
   return 0;
 }
@@ -112,23 +113,23 @@ packType packetDef::getTypeByName(char* aName)
 {
    ///find out how to replace this with a switch block
   if(aName == typeid(bool).name())
-    return eBool;
+    return e_bool;
   if(aName == typeid(unsigned char).name())
-    return eUChar;
+    return e_UChar;
   if(aName == typeid(char).name())
-    return eChar;
+    return e_char;
   if(aName == typeid(unsigned short).name())
-    return eUShort;
+    return e_UShort;
   if(aName == typeid(short).name())
-    return eShort;
+    return e_short;
   if(aName == typeid(unsigned int).name())
-    return eUInt;
+    return e_UInt;
   if(aName == typeid(int).name())
-    return eInt;
+    return e_int;
   if(aName == typeid(float).name())
-    return eFloat;
+    return e_float;
   if(aName == typeid(double).name())
-    return eDouble;
+    return e_double;
   printf("packetDef: not knowing this type please\n");
   assert(false); 
 }
@@ -138,23 +139,23 @@ unsigned int packetDef::getTypeSizeByPackType(packType aType)
 
   switch(aType)
     {
-    case eBool:
+    case e_bool:
       return sizeof(bool);
-    case eUChar:
+    case e_UChar:
       return sizeof(unsigned char);
-    case eChar:
+    case e_char:
       return sizeof(char);
-    case eUShort:
+    case e_UShort:
       return sizeof(unsigned short);
-    case eShort:
+    case e_short:
       return sizeof(short);
-    case eUInt:
+    case e_UInt:
       return sizeof(unsigned int);
-    case eInt:
+    case e_int:
       return sizeof(int);
-    case eFloat:
+    case e_float:
       return sizeof(float);
-    case eDouble:
+    case e_double:
       return sizeof(double);
     }
 

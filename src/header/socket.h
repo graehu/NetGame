@@ -63,21 +63,21 @@ inline void ShutdownSockets()
 namespace net
 {
 
-class Socket
+class socket
 {
 public:
 
-	Socket();
-	~Socket();
-	bool Open(unsigned short port);
-	void Close();
+	socket();
+	~socket();
+	bool openSock(unsigned short port);
+	void closeSock();
 	bool IsOpen() const;
-	bool Send(const address & destination, const void * data, int size);
-	int Receive(address & sender, void * data, int size);
+	bool send(const address & destination, const void * data, int size);
+	int receive(address & sender, void * data, int size);
 
 private:
 
-	int socket;
+	int m_socket;
 };
 
 }

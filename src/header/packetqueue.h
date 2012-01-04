@@ -8,25 +8,25 @@
 namespace net
 {
 
-struct PacketData
+struct packetData
 {
-	unsigned int sequence;			// packet sequence number
-	float time;					    // time offset since packet was sent or received (depending on context)
-	int size;						// packet size in bytes
+	unsigned int m_sequence;			// packet sequence number
+	float m_time;					    // time offset since packet was sent or received (depending on context)
+	int m_size;						// packet size in bytes
 };
 
-inline bool sequence_more_recent( unsigned int s1, unsigned int s2, unsigned int max_sequence )
+inline bool sequence_more_recent(unsigned int _s1, unsigned int _s2, unsigned int _maxSequence)
 {
-	return ((( s1 > s2 ) && ( s1 - s2 <= max_sequence/2 )) || (( s2 > s1 ) && ( s2 - s1 > max_sequence/2 )));
+	return ((( _s1 > _s2 ) && ( _s1 - _s2 <= _maxSequence/2 )) || (( _s2 > _s1 ) && ( _s2 - _s1 > _maxSequence/2 )));
 }		
 
-class PacketQueue : public std::list<PacketData>
+class packetQueue : public std::list<packetData>
 {
 public:
 		
-	bool exists( unsigned int sequence );
-	void insert_sorted( const PacketData & p, unsigned int max_sequence );
-	void verify_sorted( unsigned int max_sequence );
+	bool exists(unsigned int sequence);
+	void insert_sorted(const packetData & _p, unsigned int _maxSequence);
+	void verify_sorted(unsigned int _maxSequence);
 };
 
 }

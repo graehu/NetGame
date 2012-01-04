@@ -8,74 +8,74 @@ using namespace net;
 
 
 
-FlowControl::FlowControl()
+flowControl::flowControl()
 {
 	//printf( "flow control initialized\n" );
-	Reset();
+	reset();
 }
 
-void FlowControl::Reset()
+void flowControl::reset()
 {
-	mode = Bad;
-	penalty_time = 4.0f;
-	good_conditions_time = 0.0f;
-	penalty_reduction_accumulator = 0.0f;
+	m_mode = e_bad;
+	m_penaltyTime = 4.0f;
+	m_goodConditionsTime = 0.0f;
+	m_penaltyReductionAccumulator = 0.0f;
 }
 
-void FlowControl::Update( float deltaTime, float rtt )
+void flowControl::update(float _deltaTime, float _rtt)
 {
 	const float RTT_Threshold = 250.0f;
 
-	if ( mode == Good )
+	if (m_mode == e_good)
 	{
-		if ( rtt > RTT_Threshold )
+		if (_rtt > RTT_Threshold)
 		{
 			///printf( "*** dropping to bad mode ***\n" );
-			mode = Bad;
-			if ( good_conditions_time < 10.0f && penalty_time < 60.0f )
+			m_mode = e_bad;
+			if (m_goodConditionsTime < 10.0f && m_penaltyTime < 60.0f)
 			{
-				penalty_time *= 2.0f;
-				if ( penalty_time > 60.0f )
-					penalty_time = 60.0f;
-				///printf( "penalty time increased to %.1f\n", penalty_time );
+				m_penaltyTime *= 2.0f;
+				if (m_penaltyTime > 60.0f)
+					m_penaltyTime = 60.0f;
+				///printf("penalty time increased to %.1f\n", penalty_time);
 			}
-			good_conditions_time = 0.0f;
-			penalty_reduction_accumulator = 0.0f;
+			m_goodConditionsTime = 0.0f;
+			m_penaltyReductionAccumulator = 0.0f;
 			return;
 		}
 
-		good_conditions_time += deltaTime;
-		penalty_reduction_accumulator += deltaTime;
+		m_goodConditionsTime += _deltaTime;
+		m_penaltyReductionAccumulator += _deltaTime;
 
-		if ( penalty_reduction_accumulator > 10.0f && penalty_time > 1.0f )
+		if (m_penaltyReductionAccumulator > 10.0f && m_penaltyTime > 1.0f)
 		{
-			penalty_time /= 2.0f;
-			if ( penalty_time < 1.0f )
-				penalty_time = 1.0f;
-			///printf( "penalty time reduced to %.1f\n", penalty_time );
-			penalty_reduction_accumulator = 0.0f;
+			m_penaltyTime /= 2.0f;
+			if (m_penaltyTime < 1.0f)
+				m_penaltyTime = 1.0f;
+			///printf("penalty time reduced to %.1f\n", penalty_time);
+			m_penaltyReductionAccumulator = 0.0f;
 		}
 	}
 
-	if ( mode == Bad )
+	if (m_mode == e_bad)
 	{
-		if ( rtt <= RTT_Threshold )
-			good_conditions_time += deltaTime;
+		if (_rtt <= RTT_Threshold)
+			m_goodConditionsTime += _deltaTime;
 		else
-			good_conditions_time = 0.0f;
+			m_goodConditionsTime = 0.0f;
 
-		if ( good_conditions_time > penalty_time )
+		if (m_goodConditionsTime > m_penaltyTime)
 		{
-			///printf( "*** upgrading to good mode ***\n" );
-			good_conditions_time = 0.0f;
-			penalty_reduction_accumulator = 0.0f;
-			mode = Good;
+			///printf("*** upgrading to good mode ***\n");
+			m_goodConditionsTime = 0.0f;
+			m_penaltyReductionAccumulator = 0.0f;
+			m_mode = e_good;
 			return;
 		}
 	}
 }
 
-float FlowControl::GetSendRate()
+float flowControl::getSendRate()
 {
-	return mode == Good ? 30.0f : 10.0f;
+	return m_mode == e_good ? 30.0f : 10.0f;
 }

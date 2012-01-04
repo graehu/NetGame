@@ -3,113 +3,111 @@
 using namespace net;
 using namespace std;
 
-connection::connection(unsigned short aProtocolId, float aTimeout, unsigned int aMax_sequence)
+connection::connection(unsigned short _protocolID, float _timeout, unsigned int _maxSequence)
 {
-  mProtocolId = aProtocolId;
-  mTimeout = aTimeout;
-  mMax_sequence = aMax_sequence;
-  mRunning = false;
-  connected = false;
-  mMailList.clear();
-  mSendAccumulator = 0;
-  //mHeader = 16;
+  m_protocolID = _protocolID;
+  m_timeout = _timeout;
+  m_maxSequence = _maxSequence;
+  m_running = false;
+  m_mailList.clear();
+  m_sendAccumulator = 0;
 }
 
 connection::~connection()
 {
-  if(mRunning)
+  if(m_running)
     stop();
 }
 
-bool connection::start(int aPort)
+bool connection::start(int _port)
 {
-  assert(!mRunning);
-  mPort = aPort;
-  mSendPacket.setAlloc(mSendPacket.getHeaderSize());
-  mReceivePacket.setAlloc(mReceivePacket.getHeaderSize());
-  printf("start connection on port %d\n", aPort);
-  if (!mSocket.Open(aPort))
+  assert(!m_running);
+  m_port = _port;
+  m_sendPacket.setAlloc(m_sendPacket.getHeaderSize());
+  m_receivePacket.setAlloc(m_receivePacket.getHeaderSize());
+  printf("start connection on port %d\n", _port);
+  if (!m_socket.openSock(_port))
     return false;
-  mRunning = true;
+  m_running = true;
   return true;
 }
 
 void connection::stop()
 {
-  assert(mRunning);
+  assert(m_running);
   printf("stop connection\n");
-  mMailList.empty();
-  mSocket.Close();
-  mRunning = false;
+  m_mailList.empty();
+  m_socket.closeSock();
+  m_running = false;
 }
 
-void connection::connect(const address & nAddress)
+void connection::connect(const address & _address)
 {
   printf("client trying: %d.%d.%d.%d:%d\n",
-	 nAddress.getA(),
-	 nAddress.getB(),
-	 nAddress.getC(),
-	 nAddress.getD(),
-	 nAddress.getPort()
+	 _address.getA(),
+	 _address.getB(),
+	 _address.getC(),
+	 _address.getD(),
+	 _address.getPort()
 	 );
 
-  if(!mKeyPool.empty())   /// If the key pool isn't empty
+  if(!m_keyPool.empty())   /// If the key pool isn't empty
     {
       /// access mailList based on the key pools returned value
       /// and set mailList element up with the new connections
       /// data
-      mMailList[mKeyPool.back()].first->mState = eConnecting;
-      mMailList[mKeyPool.back()].first->mAddress = nAddress;
-      mMailList[mKeyPool.back()].first->mTimeoutAccumulator = 0.0f;
-      mMailList[mKeyPool.back()].first->mStatistics.Reset();
-      mMailList[mKeyPool.back()].second = 0;
+      m_mailList[m_keyPool.back()].first->m_state = e_connecting;
+      m_mailList[m_keyPool.back()].first->m_address = _address;
+      m_mailList[m_keyPool.back()].first->m_timeoutAccumulator = 0.0f;
+      m_mailList[m_keyPool.back()].first->m_stats.reset();
+      m_mailList[m_keyPool.back()].second = 0;
 
 
       /// add the key onto newConKeys and pop it off of the keyPool
       /// as it is now in use.
 
-      mNewConnKeys.push_back(mKeyPool.back()); ///Receive key
-      mKeyPool.pop_back();
+      m_newConnKeys.push_back(m_keyPool.back()); ///Receive key
+      m_keyPool.pop_back();
 
       return;
     }
 
-  /// if the key pool Is empty
+  /// If The key pool Is empty
   /// allocate a new sender
   /// initialise it as a new connection
   /// push it back onto mailList
   /// then push it's array position onto newConKeys
 
-  sender* nMailer = new sender(mMax_sequence);
-  nMailer->mAddress = nAddress;
-  nMailer->mState = eConnecting;
-  nMailer->mTimeoutAccumulator = 0.0f;
+  sender* n_mailer = new sender(m_maxSequence);
+  n_mailer->m_address = _address;
+  n_mailer->m_state = e_connecting;
+  n_mailer->m_timeoutAccumulator = 0.0f;
   unsigned short sendKey = 0;
-  mMailList.push_back(std::pair<sender*, unsigned short>(nMailer, sendKey));
-  mNewConnKeys.push_back(mMailList.size()-1); /// Receive key
+  m_mailList.push_back(std::pair<sender*, unsigned short>(n_mailer, sendKey));
+  m_newConnKeys.push_back(m_mailList.size()-1); /// Receive key
 }
 
 
-void connection::update(float deltaTime)
+void connection::update(float _deltaTime)
 {
-  assert(mRunning);
+  assert(m_running);
 
   bool accumRestart = false;
 
-  if(mMailList.size() == 0)
+  if(m_mailList.size() == 0)
     return;
-  if(mSendAccumulator > 1.0f / 30.0f)  /// send if sendAccumulator is greater than 1/30th,
-    mSendAccumulator = 0;
+  if(m_sendAccumulator > 1.0f / 30.0f)  /// send if sendAccumulator is greater than 1/30th,
+    m_sendAccumulator = 0;
 
-  mSendAccumulator += deltaTime; /// advance the sendAccumulator by deltaTime, important for sending connection packets
+  m_sendAccumulator += _deltaTime; /// advance the sendAccumulator by _deltaTime, important for sending connection packets
 
 
-  for(unsigned int i = 0; i < mMailList.size(); i++)  /// loop through all connections
+  for(unsigned int i = 0; i < m_mailList.size(); i++)  /// loop through all connections
     {
-      if(mMailList[i].first->mState == eDisconnected)
+      if(m_mailList[i].first->m_state == e_disconnected)
 	continue;
 
-      mMailList[i].first->mTimeoutAccumulator += deltaTime;
+      m_mailList[i].first->m_timeoutAccumulator += _deltaTime;
 
 
       /// ///////////////////////////////////////////////////////////////////////////////////////////
@@ -119,9 +117,9 @@ void connection::update(float deltaTime)
       /// SECTION OF INTEREST
       /// init packet sending
 
-      if(mMailList[i].first->mState == eConnecting) /// send a key for them
+      if(m_mailList[i].first->m_state == e_connecting) /// send a key for them
         {
-	  if(mSendAccumulator > 1.0f / 30.0f)  ///send if sendAccumulator is greater than 1/30th,
+	  if(m_sendAccumulator > 1.0f / 30.0f)  ///send if sendAccumulator is greater than 1/30th,
             {
 	      ///so roughly 30 a second if send accumulator is a fraction of a second
 
@@ -130,12 +128,12 @@ void connection::update(float deltaTime)
 
 	      ///Using writeData is a little hacky, but for now it will do.
 
-	      mSendPacket.writeData((unsigned short)(mProtocolId*2),0);
-	      mSendPacket.writeData((unsigned short)mMailList[i].second,2);
-	      mSendPacket.writeData((unsigned short)i,4);
+	      m_sendPacket.writeData((unsigned short)(m_protocolID*2),0);
+	      m_sendPacket.writeData((unsigned short)m_mailList[i].second,2);
+	      m_sendPacket.writeData((unsigned short)i,4);
 
-	      mSocket.Send(mMailList[i].first->mAddress, mSendPacket.getData(), 6);
-	      mSendPacket.clearPacket();
+	      m_socket.send(m_mailList[i].first->m_address, m_sendPacket.getData(), 6);
+	      m_sendPacket.clearPacket();
             }
         }
 
@@ -144,115 +142,112 @@ void connection::update(float deltaTime)
       /// ///////////////////////////////////////////////////////////////////////////////////////////
 
 
-      if (mMailList[i].first->mTimeoutAccumulator > mTimeout)
+      if (m_mailList[i].first->m_timeoutAccumulator > m_timeout)
         {
-	  if (mMailList[i].first->mState == eConnecting)
+	  if (m_mailList[i].first->m_state == e_connecting)
             {
 	      printf
                 (
 		 "Timed-out connecting to: %d.%d.%d.%d:%d\n",
-		 mMailList[i].first->mAddress.getA(),
-		 mMailList[i].first->mAddress.getB(),
-		 mMailList[i].first->mAddress.getC(),
-		 mMailList[i].first->mAddress.getD(),
-		 mMailList[i].first->mAddress.getPort()
+		 m_mailList[i].first->m_address.getA(),
+		 m_mailList[i].first->m_address.getB(),
+		 m_mailList[i].first->m_address.getC(),
+		 m_mailList[i].first->m_address.getD(),
+		 m_mailList[i].first->m_address.getPort()
 		 );
 
-	      mMailList[i].first->mState = eDisconnected;
-	      mMailList[i].first->mFlow.Reset();
-	      mMailList[i].second = 0;
+	      m_mailList[i].first->m_state = e_disconnected;
+	      m_mailList[i].first->m_flow.reset();
+	      m_mailList[i].second = 0;
 
 
-	      for(unsigned int ii = 0; ii < mNewConnKeys.size(); ii++)
+	      for(unsigned int ii = 0; ii < m_newConnKeys.size(); ii++)
                 {
-		  if(mMailList[i].first->mAddress == mMailList[mNewConnKeys[ii]].first->mAddress) ///Removing a connection
+		  if(m_mailList[i].first->m_address == m_mailList[m_newConnKeys[ii]].first->m_address) ///Removing a connection
                     {
-
-		      if(mNewConnKeys[ii] != mNewConnKeys.back())
+		      if(m_newConnKeys[ii] != m_newConnKeys.back())
                         {
 			  /// Switch the current connection out for
 			  /// the connection at the back new connection
 			  unsigned short temp;
-			  temp = mNewConnKeys[ii];
-			  mNewConnKeys[ii] = mNewConnKeys.back();
-			  mNewConnKeys.back() = temp;
+			  temp = m_newConnKeys[ii];
+			  m_newConnKeys[ii] = m_newConnKeys.back();
+			  m_newConnKeys.back() = temp;
                         }
-
-		      mNewConnKeys.pop_back();
+		      m_newConnKeys.pop_back();
                     }
                 }
 
 	      /// push the connection onto the key pool because it can be reused
-	      mKeyPool.push_back(i);
+	      m_keyPool.push_back(i);
 
-	      connected = false; ///this is bad, once i write the game class this will be out.
 	      continue;
             }
-	  else if ( mMailList[i].first->mState  == eConnected )
+	  else if ( m_mailList[i].first->m_state  == e_connected )
             {
 	      printf
                 (
 		 "Connection timed-out: %d.%d.%d.%d:%d\n",
-		 mMailList[i].first->mAddress.getA(),
-		 mMailList[i].first->mAddress.getB(),
-		 mMailList[i].first->mAddress.getC(),
-		 mMailList[i].first->mAddress.getD(),
-		 mMailList[i].first->mAddress.getPort()
+		 m_mailList[i].first->m_address.getA(),
+		 m_mailList[i].first->m_address.getB(),
+		 m_mailList[i].first->m_address.getC(),
+		 m_mailList[i].first->m_address.getD(),
+		 m_mailList[i].first->m_address.getPort()
 		 );
-	      mMailList[i].first->mState = eDisconnected;
-	      mMailList[i].first->mFlow.Reset();
-	      mMailList[i].second = 0;
-	      mKeyPool.push_back(i);
+	      m_mailList[i].first->m_state = e_disconnected;
+	      m_mailList[i].first->m_flow.reset();
+	      m_mailList[i].second = 0;
+	      m_keyPool.push_back(i);
 	      continue;
             }
         }
-      mMailList[i].first->mStatistics.Update(deltaTime);
+      m_mailList[i].first->m_stats.update(_deltaTime);
     }
 
 }
 
-bool connection::sendPacket(unsigned short aKey, float aDeltaTime)
+bool connection::sendPacket(unsigned short _key, float _deltaTime)
 {
 
   ///it would be cool to somehow add FlowControl to this function.
 
-  assert(mRunning);
+  assert(m_running);
 
-  if (mMailList.size() == 0 )
+  if (m_mailList.size() == 0)
     return false;
 
-  if (mMailList.size() <= aKey)
+  if (m_mailList.size() <= _key)
     return false;
 
-  if (mMailList[aKey].first->mAddress.getAddress() == 0 )
+  if (m_mailList[_key].first->m_address.getAddress() == 0)
     return false;
 
-  if( mMailList[aKey].first->mState != eConnected)
+  if( m_mailList[_key].first->m_state != e_connected)
     return false;
 
 
-  mMailList[aKey].first->mFlow.Update(aDeltaTime, mMailList[aKey].first->mStatistics.GetRoundTripTime() * 1000.0f);
-  mMailList[aKey].first->mSendAccumulator += aDeltaTime;
+  m_mailList[_key].first->m_flow.update(_deltaTime, m_mailList[_key].first->m_stats.getRoundTripTime() * 1000.0f);
+  m_mailList[_key].first->m_sendAccumulator += _deltaTime;
 
-  float sendRate = mMailList[aKey].first->mFlow.GetSendRate();
-  float sendAccumulator = mMailList[aKey].first->mSendAccumulator;
+  float sendRate = m_mailList[_key].first->m_flow.getSendRate();
+  float sendAccumulator = m_mailList[_key].first->m_sendAccumulator;
   bool error = 0;
 
   if(sendAccumulator > (1.0f/sendRate))
     {
 
-      mMailList[aKey].first->mSendAccumulator = 0;
+      m_mailList[_key].first->m_sendAccumulator = 0;
 
       //sexy new way (no need for a local packet!)
-      mSendPacket.writeProtocolId(mProtocolId); ///short
-      mSendPacket.writeKey(mMailList[aKey].second); /// send key ///short
-      mSendPacket.writeSequence(mMailList[aKey].first->mStatistics.GetLocalSequence()); /// sequence
-      mSendPacket.writeAck(mMailList[aKey].first->mStatistics.GetRemoteSequence()); /// ack
-      mSendPacket.writeAckBits(mMailList[aKey].first->mStatistics.GenerateAckBits()); /// acked bits
-      mMailList[aKey].first->mStatistics.PacketSent(mSendPacket.getAlloc());
+      m_sendPacket.writeProtocolId(m_protocolID); ///short
+      m_sendPacket.writeKey(m_mailList[_key].second); /// send key ///short
+      m_sendPacket.writeSequence(m_mailList[_key].first->m_stats.getLocalSequence()); /// sequence
+      m_sendPacket.writeAck(m_mailList[_key].first->m_stats.getRemoteSequence()); /// ack
+      m_sendPacket.writeAckBits(m_mailList[_key].first->m_stats.generateAckBits()); /// acked bits
+      m_mailList[_key].first->m_stats.packetSent(m_sendPacket.getAlloc());
 
-      error = mSocket.Send(mMailList[aKey].first->mAddress, mSendPacket.getData(), mSendPacket.getEnd());
-      mSendPacket.clearPacket(); /// clears the packet so as you can start pushing data in from the start again
+      error = m_socket.send(m_mailList[_key].first->m_address, m_sendPacket.getData(), m_sendPacket.getEnd());
+      m_sendPacket.clearPacket(); /// clears the packet so as you can start pushing data in from the start again
       //printf("sending packet\n");
     }
 
@@ -260,36 +255,36 @@ bool connection::sendPacket(unsigned short aKey, float aDeltaTime)
 }
 
 
-int connection::receivePacket(unsigned int aSize)
+int connection::receivePacket(unsigned int _size)
 {
   ////////////////////////////////////////////////////////////////
   /// NOTE                                                     ///
   /// nothing is done with the data that is Received as of yet.///
   ////////////////////////////////////////////////////////////////
 
-  assert(mRunning);
-  address nSender;
+  assert(m_running);
+  address n_sender;
 
-  mReceivePacket.clearPacket();
-  mReceivePacket.setAlloc(aSize);
-  unsigned char* packet = mReceivePacket.getData();
-  // push this directly into mReceivePacket.
-  int bytes_read = mSocket.Receive(nSender, packet, aSize);
+  m_receivePacket.clearPacket();
+  m_receivePacket.setAlloc(_size);
+  unsigned char* packet = m_receivePacket.getData();
+  // push this directly into m_receivePacket.
+  int bytes_read = m_socket.receive(n_sender, packet, _size);
 
   if (bytes_read == 0)
     return 0;
 
-  mReceivePacket.setEnd(mReceivePacket.getHeaderSize()); /// only reading the mHeader for now
+  m_receivePacket.setEnd(m_receivePacket.getHeaderSize()); /// only reading the mHeader for now
 
   unsigned short security = 0;
 
-  security = mReceivePacket.readProtocolId();
+  security = m_receivePacket.readProtocolId();
 
-  if((security != mProtocolId) && (security != (unsigned short)(mProtocolId*2)))
+  if((security != m_protocolID) && (security != (unsigned short)(m_protocolID*2)))
     return 0;
 
   bool initPacket = false;
-  if(security == (unsigned short)(mProtocolId*2))
+  if(security == (unsigned short)(m_protocolID*2))
     initPacket = true;
 
   ///UNDER HEAVY DEVELOPMENT/////////////////////////////////////////////////////////////////////////////
@@ -297,13 +292,13 @@ int connection::receivePacket(unsigned int aSize)
   if(initPacket)
     {
       //printf("Received init packet \n");
-      security = mReceivePacket.readUShort(2); ///the key they think i sent them.
+      security = m_receivePacket.readUShort(2); ///the key they think i sent them.
 
-      if(security < mMailList.size())
+      if(security < m_mailList.size())
 	{
-	  if(mMailList[security].first->mAddress == nSender)
+	  if(m_mailList[security].first->m_address == n_sender)
 	    {
-	      if(mMailList[security].first->mState == eConnected)
+	      if(m_mailList[security].first->m_state == e_connected)
 		{
 		  /// the person sending this init packet is already connected
 		  /// so don't perform init operations on this address.
@@ -314,97 +309,93 @@ int connection::receivePacket(unsigned int aSize)
 
       ///checks if the sender is in new connections or not
 
-      for(unsigned int i = 0; i < mNewConnKeys.size(); i++)
+      for(unsigned int i = 0; i < m_newConnKeys.size(); i++)
         {
 
-	  if(mMailList[mNewConnKeys[i]].first->mAddress == nSender)
+	  if(m_mailList[m_newConnKeys[i]].first->m_address == n_sender)
             {
 	      /// Look through all the new connections until you find
 	      /// the one that belongs to this sender
 	      /// set his sent key to what it's telling you
 	      /// then check if it is sending the Receive key correctly
-	      security = mReceivePacket.readUShort(4);
-	      mMailList[mNewConnKeys[i]].second = security;
+	      security = m_receivePacket.readUShort(4);
+	      m_mailList[m_newConnKeys[i]].second = security;
 
-	      security = mReceivePacket.readUShort(2);
+	      security = m_receivePacket.readUShort(2);
 
-	      if(security == mNewConnKeys[i])
+	      if(security == m_newConnKeys[i])
                 {
 		  ///printf("client connected1\n");
 
 		  printf
                     (
 		     "Port: %i Connected to: %d.%d.%d.%d:%d\n",
-		     mPort,
-		     nSender.getA(),
-		     nSender.getB(),
-		     nSender.getC(),
-		     nSender.getD(),
-		     nSender.getPort()
+		     m_port,
+		     n_sender.getA(),
+		     n_sender.getB(),
+		     n_sender.getC(),
+		     n_sender.getD(),
+		     n_sender.getPort()
 		     );
 
 		  /// judging by my output this could be a bad place for these lines.
-		  mMailList[security].first->mState = eConnected;
-		  connected = true;
+		  m_mailList[security].first->m_state = e_connected;
 
-		  if(mNewConnKeys[i] != mNewConnKeys.back())
+		  if(m_newConnKeys[i] != m_newConnKeys.back())
                     {
 		      /// Switch the current connection out for
 		      /// the connection at the back new connection
 		      unsigned short temp;
-		      temp = mNewConnKeys[i];
-		      mNewConnKeys[i] = mNewConnKeys.back();
-		      mNewConnKeys.back() = temp;
+		      temp = m_newConnKeys[i];
+		      m_newConnKeys[i] = m_newConnKeys.back();
+		      m_newConnKeys.back() = temp;
                     }
-		  mNewConnKeys.pop_back();
+		  m_newConnKeys.pop_back();
                 }
 	      return 0;
             }
         }
 
       ///if it is a new connection then give it a key if there is one spare in the key pool
-      if(!mKeyPool.empty())
+      if(!m_keyPool.empty())
         {
-	  security = mReceivePacket.readUShort(4);
-	  mMailList[mKeyPool.back()].first->mState = eConnecting;
-	  mMailList[mKeyPool.back()].first->mAddress = nSender;
-	  mMailList[mKeyPool.back()].first->mTimeoutAccumulator = 0;
-	  mMailList[mKeyPool.back()].first->mStatistics.Reset();
-	  mMailList[mKeyPool.back()].second = security;
+	  security = m_receivePacket.readUShort(4);
+	  m_mailList[m_keyPool.back()].first->m_state = e_connecting;
+	  m_mailList[m_keyPool.back()].first->m_address = n_sender;
+	  m_mailList[m_keyPool.back()].first->m_timeoutAccumulator = 0;
+	  m_mailList[m_keyPool.back()].first->m_stats.reset();
+	  m_mailList[m_keyPool.back()].second = security;
 
-	  mNewConnKeys.push_back(mKeyPool.back());
-	  mKeyPool.pop_back();
+	  m_newConnKeys.push_back(m_keyPool.back());
+	  m_keyPool.pop_back();
 
 	  return 0;
         }
       /// printf("client connecting for first time \n");
 
-      security = mReceivePacket.readUShort(4);
+      security = m_receivePacket.readUShort(4);
 
-      sender* nMailer = new sender(mMax_sequence);
-      nMailer->mAddress = nSender;
-      nMailer->mState = eConnecting;
-      nMailer->mTimeoutAccumulator = 0.0f;
-      nMailer->mStatistics.Reset();
+      sender* n_mailer = new sender(m_maxSequence);
+      n_mailer->m_address = n_sender;
+      n_mailer->m_state = e_connecting;
+      n_mailer->m_timeoutAccumulator = 0.0f;
+      n_mailer->m_stats.reset();
 
-      mMailList.push_back(std::pair<sender*, unsigned short>(nMailer, security));
-      mNewConnKeys.push_back(mMailList.size()-1);
-
-
+      m_mailList.push_back(std::pair<sender*, unsigned short>(n_mailer, security));
+      m_newConnKeys.push_back(m_mailList.size()-1);
     }
   else
     {
+      security = m_receivePacket.readUShort(2);
 
-      security = mReceivePacket.readUShort(2);
-
-      if(security > mMailList.size())
+      if(security > m_mailList.size())
 	return 0;
 
-      if(mMailList[security].first->mState == eConnecting)
+      if(m_mailList[security].first->m_state == e_connecting)
         {
-	  for(unsigned int i = 0; i < mNewConnKeys.size(); i++)
+	  for(unsigned int i = 0; i < m_newConnKeys.size(); i++)
             {
-	      if(mMailList[mNewConnKeys[i]].first->mAddress == nSender)
+	      if(m_mailList[m_newConnKeys[i]].first->m_address == n_sender)
                 {
 		  /// Look through all the new connections until you find
 		  /// the one that belongs to this sender
@@ -413,49 +404,47 @@ int connection::receivePacket(unsigned int aSize)
 		  //printf("send + 1: %d \n", (int)test);
 		  //printf("Receive + 1: %d \n", (int)security);
 
-		  if(security == mNewConnKeys[i])
+		  if(security == m_newConnKeys[i])
                     {
 
 		      printf
                         (
 			 "Port: %i Connected to: %d.%d.%d.%d:%d\n",
-			 mPort,
-			 nSender.getA(),
-			 nSender.getB(),
-			 nSender.getC(),
-			 nSender.getD(),
-			 nSender.getPort()
+			 m_port,
+			 n_sender.getA(),
+			 n_sender.getB(),
+			 n_sender.getC(),
+			 n_sender.getD(),
+			 n_sender.getPort()
 			 );
 
-		      mMailList[security].first->mState = eConnected;
-		      connected = true;
+		      m_mailList[security].first->m_state = e_connected;
 		      ///by this point i must've sent the right key to them
 
-		      if(mNewConnKeys[i] != mNewConnKeys.back())
+		      if(m_newConnKeys[i] != m_newConnKeys.back())
                         {
 			  /// Switch the current connection out for
 			  /// the connection at the back new connection
 			  unsigned short temp;
-			  temp = mNewConnKeys[i];
-			  mNewConnKeys[i] = mNewConnKeys.back();
-			  mNewConnKeys.back() = temp;
+			  temp = m_newConnKeys[i];
+			  m_newConnKeys[i] = m_newConnKeys.back();
+			  m_newConnKeys.back() = temp;
                         }
-		      mNewConnKeys.pop_back();
+		      m_newConnKeys.pop_back();
                     }
                 }
             }
         }
 
 
-      connected = true; //legacy
-      /// unsigned short sendKey = mReceivePacket.readUShort(2); /// removed because i don't think it's needed anymore
-      unsigned int packet_sequence = mReceivePacket.readUInteger(4);
-      unsigned int packet_ack = mReceivePacket.readUInteger(8);
-      unsigned int packet_ack_bits = mReceivePacket.readUInteger(12);
+      /// unsigned short sendKey = m_receivePacket.readUShort(2); /// removed because i don't think it's needed anymore
+      unsigned int packet_sequence = m_receivePacket.readUInteger(4);
+      unsigned int packet_ack = m_receivePacket.readUInteger(8);
+      unsigned int packet_ack_bits = m_receivePacket.readUInteger(12);
 
-      mMailList[security].first->mStatistics.PacketReceived(packet_sequence, bytes_read - 16); ///WHY DOES THIS SAY 14?!.... it doesn't anymore...
-      mMailList[security].first->mStatistics.ProcessAck(packet_ack, packet_ack_bits);
-      mMailList[security].first->mTimeoutAccumulator = 0;
+      m_mailList[security].first->m_stats.packetReceived(packet_sequence, bytes_read - 16); ///WHY DOES THIS SAY 14?!.... it doesn't anymore...
+      m_mailList[security].first->m_stats.processAck(packet_ack, packet_ack_bits);
+      m_mailList[security].first->m_timeoutAccumulator = 0;
 
       //memcpy(data, &packet[mHeader], bytes_read - mHeader);
 

@@ -6,15 +6,13 @@
 #include "address.h"
 #include "socket.h"
 #include "connection.h"
-#include "reliabilitySystem.h"
+#include "stats.h"
 #include "packetqueue.h"
 #include "flowControl.h"
 #include "entity.hpp"
-//#include "player.h"
 #include "renderer.h"
 #include "packetDef.h"
 
-//#include <map>
 
 using namespace std;
 
@@ -39,54 +37,50 @@ namespace net
 
     enum entityState
     {
-        eUninitialised = 0,
-        eInitialised,
-        eUpdating
+        e_uninitialised = 0,
+        e_initialised,
+        e_updating
     };
 
     class network : protected connection
     {
         public:
 
-        network(unsigned short protocolId, float timeout , unsigned int max_sequence = 0xFFFFFFFF);
+        network(unsigned short _protocolID, float _timeout , unsigned int _maxSequence = 0xFFFFFFFF);
         ~network();
-        bool init(bool aHost, int aPort);
-        bool update(float aDeltaTime);
+        bool init(bool _host, int _port);
+        bool update(float _deltaTime);
         void draw(void);
         void addEntity(void);
-        entity* getEntity(unsigned int aElement);
-	bool getType(void){return mHost;}
+        entity* getEntity(unsigned int _element);
+	bool getType(void){return m_host;}
         protected:
         private:
 
-        void initEntity(unsigned short packetSender, unsigned short accessKey);
+        void initEntity(unsigned short _packetSender, unsigned short _accessKey);
 
-        packetDef mDefines;
+        packetDef m_defines;
 
-	bool mHost;
+	bool m_host;
         /// this will have to be something like this eventually
         /// vector<pair<entity*,vector<unsigned short(sendKeys)> > >
-        vector<entity*> mEntities;
+        vector<entity*> m_entities;
         struct enInfo
         {
-            enInfo(unsigned short aEnKey = 0, entityState aState = eUninitialised) :
-            mEnKey(aEnKey),
-            mState(aState){};
+            enInfo(unsigned short _enKey = 0, entityState _state = e_uninitialised) :
+            m_enKey(_enKey),
+            m_state(_state){};
 
-            unsigned short mEnKey;
-            entityState mState;
+            unsigned short m_enKey;
+            entityState m_state;
         };
         ///state list PER connection...
         ///this might want to be a vector<pair<there, >> mEntityConnKeys
-        vector<vector<enInfo> >mEnUpdate; ///these are all the keys a client knows about.
-        unsigned int mPacketSize; /// this is the maximum size of a packet expect by the network
+        vector<vector<enInfo> >m_enUpdate; ///these are all the keys a client knows about.
+        unsigned int m_packetSize; /// this is the maximum size of a packet expect by the network
                                   /// implemented in net.cpp
 
-        Renderer myRender;
-
-		///i probably need to have flow control per connection in the connection class
-        ///some sort of input pointer.
-
+        Renderer m_renderer;
 
     };
 

@@ -1,23 +1,23 @@
 #include "header/socket.h"
 using namespace net;
 
-Socket::Socket()
+socket::socket()
 {
-	socket = 0;
+	m_socket = 0;
 }
 
-Socket::~Socket()
+socket::~socket()
 {
-	Close();
+	closeSock();
 }
 
-bool Socket::Open(unsigned short port)
+bool socket::openSock(unsigned short port)
 {
 	assert(!IsOpen());
 
 	// create socket
-	socket = ::socket( AF_INET, SOCK_DGRAM, IPPROTO_UDP );
-	if ( socket <= 0 )
+	m_socket = ::socket( AF_INET, SOCK_DGRAM, IPPROTO_UDP );
+	if (m_socket <= 0)
 	{
 		#if PLATFORM == PLATFORM_WINDOWS
 		int error = WSAGetLastError();
@@ -26,29 +26,29 @@ bool Socket::Open(unsigned short port)
 		printf( "failed to create socket\n");
 		#endif
 
-		socket = 0;
+		m_socket = 0;
 		return false;
 	}
 	// bind to port
 	sockaddr_in address;
 	address.sin_family = AF_INET;
 	address.sin_addr.s_addr = INADDR_ANY;
-	address.sin_port = htons( (unsigned short) port );
+	address.sin_port = htons((unsigned short)port);
 
-	if ( bind( socket, (const sockaddr*) &address, sizeof(sockaddr_in) ) < 0 )
+	if (bind(m_socket, (const sockaddr*) &address, sizeof(sockaddr_in)) < 0)
 	{
 		printf( "failed to bind socket\n" );
-		Close();
+		closeSock();
 		return false;
 	}
 	// set non-blocking io
 	#if PLATFORM == PLATFORM_MAC || PLATFORM == PLATFORM_UNIX
 
 		int nonBlocking = 1;
-		if ( fcntl( socket, F_SETFL, O_NONBLOCK, nonBlocking ) == -1 )
+		if ( fcntl(m_socket, F_SETFL, O_NONBLOCK, nonBlocking ) == -1 )
 		{
 			printf( "failed to set non-blocking socket\n" );
-			Close();
+			closeSock();
 			return false;
 		}
 
@@ -58,7 +58,7 @@ bool Socket::Open(unsigned short port)
 		if ( ioctlsocket( socket, FIONBIO, &nonBlocking ) != 0 )
 		{
 			printf( "failed to set non-blocking socket\n" );
-			Close();
+			closeSock();
 			return false;
 		}
 	#endif
@@ -66,30 +66,30 @@ bool Socket::Open(unsigned short port)
 	return true;
 }
 
-void Socket::Close()
+void socket::closeSock()
 {
-	if (socket != 0)
+	if (m_socket != 0)
 	{
 		#if PLATFORM == PLATFORM_MAC || PLATFORM == PLATFORM_UNIX
-		close(socket);
+		close(m_socket);
 		#elif PLATFORM == PLATFORM_WINDOWS
 		closesocket(socket);
 		#endif
-		socket = 0;
+		m_socket = 0;
 	}
 }
 
-bool Socket::IsOpen() const
+bool socket::IsOpen() const
 {
-	return socket != 0;
+	return m_socket != 0;
 }
 
-bool Socket::Send(const address & destination, const void * data, int size)
+bool socket::send(const address & destination, const void * data, int size)
 {
 	assert(data);
 	assert(size > 0);
 
-	if (socket == 0)
+	if (m_socket == 0)
 		return false;
 
 	assert(destination.getAddress() != 0);
@@ -99,16 +99,16 @@ bool Socket::Send(const address & destination, const void * data, int size)
 	address.sin_family = AF_INET;
 	address.sin_addr.s_addr = htonl(destination.getAddress());
 	address.sin_port = htons((unsigned short) destination.getPort());
-	int sent_bytes = sendto(socket, (const char*)data, size, 0, (sockaddr*)&address, sizeof(sockaddr_in));
+	int sent_bytes = sendto(m_socket, (const char*)data, size, 0, (sockaddr*)&address, sizeof(sockaddr_in));
 	return sent_bytes == size;
 }
 
-int Socket::Receive(address & sender, void * data, int size)
+int socket::receive(address & sender, void * data, int size)
 {
 	assert(data);
 	assert(size > 0);
 
-	if (socket == 0)
+	if (m_socket == 0)
 		return false;
 
 	#if PLATFORM == PLATFORM_WINDOWS
@@ -117,7 +117,7 @@ int Socket::Receive(address & sender, void * data, int size)
 
 	sockaddr_in from;
 	socklen_t fromLength = sizeof(from);
-	int received_bytes = recvfrom(socket, (char*)data, size, 0, (sockaddr*)&from, &fromLength);
+	int received_bytes = recvfrom(m_socket, (char*)data, size, 0, (sockaddr*)&from, &fromLength);
 	if ( received_bytes <= 0 )
 		return 0;
 

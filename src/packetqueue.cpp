@@ -2,38 +2,38 @@
 using namespace net;
 
 		
-bool PacketQueue::exists( unsigned int sequence )
+bool packetQueue::exists( unsigned int sequence )
 {
 	for ( iterator itor = begin(); itor != end(); ++itor )
-		if ( itor->sequence == sequence )
+		if ( itor->m_sequence == sequence )
 			return true;
 	return false;
 }
 		
-void PacketQueue::insert_sorted( const PacketData & p, unsigned int max_sequence )
+void packetQueue::insert_sorted( const packetData & _p, unsigned int _maxSequence )
 {
 	if ( empty() )
 	{
-		push_back( p );
+		push_back( _p );
 	}
 	else
 	{
-		if ( !sequence_more_recent( p.sequence, front().sequence, max_sequence ) )
+		if ( !sequence_more_recent( _p.m_sequence, front().m_sequence, _maxSequence ) )
 		{
-			push_front( p );
+			push_front( _p );
 		}
-		else if ( sequence_more_recent( p.sequence, back().sequence, max_sequence ) )
+		else if ( sequence_more_recent( _p.m_sequence, back().m_sequence, _maxSequence ) )
 		{
-			push_back( p );
+			push_back( _p );
 		}
 		else
 		{
-			for ( PacketQueue::iterator itor = begin(); itor != end(); itor++ )
+			for ( packetQueue::iterator itor = begin(); itor != end(); itor++ )
 			{
-				assert( itor->sequence != p.sequence );
-				if ( sequence_more_recent( itor->sequence, p.sequence, max_sequence ) )
+				assert( itor->m_sequence != _p.m_sequence );
+				if ( sequence_more_recent( itor->m_sequence, _p.m_sequence, _maxSequence ) )
 				{
-					insert( itor, p );
+					insert( itor, _p );
 					break;
 				}
 			}
@@ -41,15 +41,15 @@ void PacketQueue::insert_sorted( const PacketData & p, unsigned int max_sequence
 	}
 }
 		
-void PacketQueue::verify_sorted( unsigned int max_sequence )
+void packetQueue::verify_sorted( unsigned int max_sequence )
 {
-	PacketQueue::iterator prev = end();
-	for ( PacketQueue::iterator itor = begin(); itor != end(); itor++ )
+	packetQueue::iterator prev = end();
+	for ( packetQueue::iterator itor = begin(); itor != end(); itor++ )
 	{
-		assert( itor->sequence <= max_sequence );
+		assert( itor->m_sequence <= max_sequence );
 		if ( prev != end() )
 		{
-			assert( sequence_more_recent( itor->sequence, prev->sequence, max_sequence ) );
+			assert( sequence_more_recent(itor->m_sequence, prev->m_sequence, max_sequence));
 			prev = itor;
 		}
 	}

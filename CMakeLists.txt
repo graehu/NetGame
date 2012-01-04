@@ -1,5 +1,5 @@
 cmake_minimum_required (VERSION 2.6)
-project (net)
+project (netlib)
 
 set(source 
 	   src/main.cpp 
@@ -12,7 +12,7 @@ set(source
 	   src/flowControl.cpp
 	   src/packet.cpp
 	   src/packetqueue.cpp
-	   src/reliabilitySystem.cpp
+	   src/stats.cpp
 	   src/renderer.cpp
 	   src/socket.cpp
 )
@@ -27,7 +27,7 @@ set(header
 	   src/header/flowControl.h
 	   src/header/packet.h
 	   src/header/packetqueue.h
-	   src/header/reliabilitySystem.h
+	   src/header/stats.h
 	   src/header/renderer.h
 	   src/header/socket.h
 )

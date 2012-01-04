@@ -3,29 +3,29 @@
 namespace net
 {
 
-class address
-{
-public:
+  class address
+  {
+  public:
 
-	address();
-	address( unsigned char a, unsigned char b, unsigned char c, unsigned char d, unsigned short port );
-	address( unsigned int address, unsigned short port );
+    address();
+    address(unsigned char _a, unsigned char _b, unsigned char _c, unsigned char _d, unsigned short _port);
+    address(unsigned int _address, unsigned short _port);
 
-	unsigned int getAddress() const;
-	unsigned char getA() const;
-	unsigned char getB() const;
-	unsigned char getC() const;
-	unsigned char getD() const;
-	unsigned short getPort() const;
+    unsigned int getAddress() const;
+    unsigned char getA() const;
+    unsigned char getB() const;
+    unsigned char getC() const;
+    unsigned char getD() const;
+    unsigned short getPort() const;
 
-	bool operator == ( const address & other ) const;
-	bool operator != ( const address & other ) const;
-	bool operator < ( const address & other ) const;
+    bool operator == (const address & other) const;
+    bool operator != (const address & other) const;
+    bool operator < (const address & other) const;
 
-private:
-	unsigned int mAddress;
-	unsigned short mPort;
-};
+  private:
+    unsigned int m_address;
+    unsigned short m_port;
+  };
 
 }
 #endif//ADDRESS_H

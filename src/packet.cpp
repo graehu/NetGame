@@ -4,32 +4,32 @@
 
 packet::packet()
 {
-	mAlloc = 0;
+	m_alloc = 0;
 	mPacking = false;
-	mHeaderSize = mEnd = 16;
-    mData = new unsigned char[mHeaderSize];
+	m_headerSize = m_end = 16;
+    m_data = new unsigned char[m_headerSize];
 	mTypeIttorator = 0;
     mCurrentDefID = 0;
     mSizeAccumulator = 0;
-    mAnalysed = false;
+    m_analysed = false;
 
 }
 
 packet::~packet()
 { ///this may require more later.
-    if(mData != 0)
-	delete mData;
+    if(m_data != 0)
+	delete m_data;
 }
 
 
-bool packet::beginPacketData(unsigned int aPacketDefID)
+bool packet::beginPacketData(unsigned int _packetDefID)
 {
-    if(aPacketDefID < mDefinitions->size())
+    if(_packetDefID < m_definitions->size())
     {
         assert(!mPacking);
         if(!mPacking)
         {
-            mCurrentDefID = aPacketDefID;
+            mCurrentDefID = _packetDefID;
             mPacking = true;
             safePushData((unsigned short)mCurrentDefID);
             return false;
@@ -47,7 +47,7 @@ bool packet::endPacketData()
 {
     if(mPacking)
     {
-        if(mSizeAccumulator != mDefinitions->getDefSize(mCurrentDefID))
+        if(mSizeAccumulator != m_definitions->getDefSize(mCurrentDefID))
         {
             printf("packet: endPacketData(), warning packet size inadequate.\n");
             //assert(false);
@@ -77,17 +77,17 @@ void packet::pushPacket(unsigned int aPacketDefID, ...)
 
 void packet::analysePacket(void)
 {
-    unsigned short offset = mHeaderSize;
+    unsigned short offset = m_headerSize;
     unsigned short secType = readUShort(offset);
     bool data = true;
     unsigned int i = 0;
     unsigned int ii = 0;
 
-    if(secType < mDefinitions->size())
+    if(secType < m_definitions->size())
     {
         while(data)
         {
-            while(mDefinitions->getMembTypeName(secType, ii) != 0)
+            while(m_definitions->getMembTypeName(secType, ii) != 0)
             {
 
                 if(i >= mSectionInfo.size())
@@ -98,17 +98,17 @@ void packet::analysePacket(void)
 
                 if(ii >= mSectionInfo[i].size())
                 {
-                    mSectionInfo[i].push_back(std::pair<char*,unsigned short>(mDefinitions->getMembTypeName(secType, ii), offset));
+                    mSectionInfo[i].push_back(std::pair<char*,unsigned short>(m_definitions->getMembTypeName(secType, ii), offset));
                     //printf("ok wtf\n");
                 }
                 else
                 {
-                    mSectionInfo[i][ii].first = mDefinitions->getMembTypeName(secType, ii);
+                    mSectionInfo[i][ii].first = m_definitions->getMembTypeName(secType, ii);
                     mSectionInfo[i][ii].second = offset;
 
                 }
 
-                offset += mDefinitions->getTypeSizeByName(mDefinitions->getMembTypeName(secType, ii));
+                offset += m_definitions->getTypeSizeByName(m_definitions->getMembTypeName(secType, ii));
                 ii++;
             }
             secType = readUShort(offset);
@@ -136,15 +136,15 @@ void packet::analysePacket(void)
     }
     else return; //brooooken
 
-    mAnalysed = true;
+    m_analysed = true;
 }
 
-unsigned int packet::getSectionType(unsigned int aSection)
+unsigned int packet::getSectionType(unsigned int _section)
 {
-    if(aSection < mSectionInfo.size() && aSection >= 0)
+    if(_section < mSectionInfo.size() && _section >= 0)
     {
-        if(!mSectionInfo[aSection].empty())
-        return readUShort(mSectionInfo[aSection][0].second);
+        if(!mSectionInfo[_section].empty())
+        return readUShort(mSectionInfo[_section][0].second);
 
         //printf("packet: getSectionType(), error section = %i, no such section\n", aSection);
         return 0;
@@ -156,131 +156,131 @@ unsigned int packet::getSectionType(unsigned int aSection)
     }
 }
 
-unsigned int packet::getSectionStart(unsigned int aSection)
+unsigned int packet::getSectionStart(unsigned int _section)
 {
-    if(aSection < mSectionInfo.size())
+    if(_section < mSectionInfo.size())
     {
-        return mSectionInfo[aSection][0].second;
+        return mSectionInfo[_section][0].second;
     }
 }
 
-bool packet::setAlloc(unsigned int aAlloc)
+bool packet::setAlloc(unsigned int _alloc)
 {
 
-	if(aAlloc > mAlloc)
+	if(_alloc > m_alloc)
 	{
 		unsigned char* temp;
-		temp = mData;
-		mData = new unsigned char[aAlloc];
+		temp = m_data;
+		m_data = new unsigned char[_alloc];
 		if(temp != 0)
 		{
-            memcpy(&mData[0], temp, mEnd);
+            memcpy(&m_data[0], temp, m_end);
             delete temp;
 		}
-		mAlloc = aAlloc;
+		m_alloc = _alloc;
 
 		return false;
 	}
 	return true;
 }
 
-bool packet::pushData(const unsigned char aData[], unsigned int aSize)
+bool packet::pushData(const unsigned char _data[], unsigned int _size)
 {
-	if((mEnd + aSize) > mAlloc)
+	if((m_end + _size) > m_alloc)
 	{
 		unsigned char* temp;
-		temp = mData;
-		mData = new unsigned char[(mEnd + aSize)*2];
+		temp = m_data;
+		m_data = new unsigned char[(m_end + _size)*2];
 		if(temp != 0)
 		{
-            memcpy(&mData[0], temp, mEnd);
+            memcpy(&m_data[0], temp, m_end);
             delete temp;
 		}
-		mAlloc = (mEnd + aSize)*2;
+		m_alloc = (m_end + _size)*2;
 	}
 
-	memcpy(&mData[mEnd], aData, aSize);
-	mEnd += aSize;
+	memcpy(&m_data[m_end], _data, _size);
+	m_end += _size;
 	return false;
 }
 
-unsigned int packet::readUInteger(unsigned int offset)
+unsigned int packet::readUInteger(unsigned int _offset)
 {
-    if(offset + sizeof(short)> mEnd)
+    if(_offset + sizeof(short)> m_end)
     {
         printf("Packet: readUInteger(): offset too large.\n");
         return 0;
     }
 
-    unsigned int number = (((unsigned int)mData[0+offset] << 24) | ((unsigned int)mData[1+offset] << 16) |
-                           ((unsigned int)mData[2+offset] << 8)  | ((unsigned int)mData[3+offset]));
+    unsigned int number = (((unsigned int)m_data[0+_offset] << 24) | ((unsigned int)m_data[1+_offset] << 16) |
+                           ((unsigned int)m_data[2+_offset] << 8)  | ((unsigned int)m_data[3+_offset]));
     return number;
 }
 
-int packet::readInteger(unsigned int offset)
+int packet::readInteger(unsigned int _offset)
 {
-    if(offset + sizeof(int) > mEnd)
+    if(_offset + sizeof(int) > m_end)
     {
         printf("Packet: readInteger(): offset too large.\n");
         return 0;
     }
 
-    int number = (((int)mData[0+offset] << 24) | ((int)mData[1+offset] << 16) |
-                  ((int)mData[2+offset] << 8)  | ((int)mData[3+offset]));
+    int number = (((int)m_data[0+_offset] << 24) | ((int)m_data[1+_offset] << 16) |
+                  ((int)m_data[2+_offset] << 8)  | ((int)m_data[3+_offset]));
     return number;
 }
 
-unsigned short packet::readUShort(unsigned int offset)
+unsigned short packet::readUShort(unsigned int _offset)
 {
 
-    if(offset + sizeof(short) > mEnd)
+    if(_offset + sizeof(short) > m_end)
     {
         printf("Packet: readUShort(): offset too large.\n");
         return 0;
     }
 
-    unsigned short number = (((unsigned short)mData[0+offset] << 8) |
-                    ((unsigned short)mData[1+offset]));
+    unsigned short number = (((unsigned short)m_data[0+_offset] << 8) |
+                    ((unsigned short)m_data[1+_offset]));
 
     return number;
 }
 
-short packet::readShort(unsigned int offset)
+short packet::readShort(unsigned int _offset)
 {
-    if(offset+sizeof(short) > mEnd)
+    if(_offset+sizeof(short) > m_end)
     {
         printf("Packet: readShort(): offset too large.\n");
         return 0;
     }
-    short number = (((short)mData[0+offset] << 8) |
-                    ((short)mData[1+offset]));
+    short number = (((short)m_data[0+_offset] << 8) |
+                    ((short)m_data[1+_offset]));
 
     return number;
 }
 
 
-unsigned char packet::readUChar(unsigned int offset)
+unsigned char packet::readUChar(unsigned int _offset)
 {
 
-    if(offset + sizeof(unsigned char) > mEnd)
+    if(_offset + sizeof(unsigned char) > m_end)
     {
         printf("Packet: readUChar(): offset too large.\n");
         return 0;
     }
 
-    unsigned char character = ((unsigned char)mData[offset]);
+    unsigned char character = ((unsigned char)m_data[_offset]);
 
     return character;
 }
 
-char packet::readChar(unsigned int offset)
+char packet::readChar(unsigned int _offset)
 {
-    if(offset+sizeof(short) > mEnd)
+    if(_offset+sizeof(short) > m_end)
     {
         printf("Packet: readChar(): offset too large.\n");
         return 0;
     }
-    char character = ((char)mData[offset]);
+    char character = ((char)m_data[_offset]);
 
     return character;
 }

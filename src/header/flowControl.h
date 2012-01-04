@@ -6,28 +6,28 @@
 namespace net
 {
 
-class FlowControl
+class flowControl
 {
 public:
 	
-	FlowControl();
+	flowControl();
 	
-	void Reset();
-	void Update( float deltaTime, float rtt );
-	float GetSendRate();
+	void reset();
+	void update(float _deltaTime, float _rtt);
+	float getSendRate();
 	
 private:
 
-	enum Mode
+	enum mode
 	{
-		Good,
-		Bad
+		e_good = 0,
+		e_bad
 	};
 
-	Mode mode;
-	float penalty_time;
-	float good_conditions_time;
-	float penalty_reduction_accumulator;
+	mode m_mode;
+	float m_penaltyTime;
+	float m_goodConditionsTime;
+	float m_penaltyReductionAccumulator;
 };
 
 }

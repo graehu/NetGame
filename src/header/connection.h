@@ -1,7 +1,7 @@
 #ifndef CONNECTION_H
 #define CONNECTION_H
 
-#include "reliabilitySystem.h"
+#include "stats.h"
 #include "flowControl.h"
 #include "socket.h" /// has address in it.
 #include "packet.h"
@@ -24,71 +24,66 @@ public:
 
 
 
-    connection(unsigned short aProtocolId, float aTimeout, unsigned int aMax_sequence = 0xFFFFFFFF );
+    connection(unsigned short _protocolID, float _timeout, unsigned int _maxSequence = 0xFFFFFFFF );
     virtual ~connection();
-    bool start(int aPort);
+    bool start(int _port);
     void stop();
-    void connect(const address & address);
+    void connect(const address &_address);
 
-    bool isConnected(void) {return connected;}
-
-    void update(float deltaTime);
-    bool sendPacket(unsigned short aKey, float aDeltaTime);
-    int receivePacket(unsigned int aSize);
+    void update(float _deltaTime);
+    bool sendPacket(unsigned short _key, float _deltaTime);
+    int receivePacket(unsigned int _size);
     int getHeaderSize() const;
 
-    ReliabilitySystem & getReliabilitySystem()
+    stats& getStats()
     {
-            if(mMailList.size() > 0)
+            if(m_mailList.size() > 0)
             {
-
-                return mMailList.front().first->mStatistics;
+                return m_mailList.front().first->m_stats;
             }
     }
 
 protected:
 
-    packet mReceivePacket;
-	packet mSendPacket;
-    unsigned int mPort;
+    packet m_receivePacket;
+    packet m_sendPacket;
+    unsigned int m_port;
 private:
 
     enum state
     {
-        eDisconnected = 0,
-        eConnectFail,
-        eConnecting,
-        eConnected
+        e_disconnected = 0,
+        e_connecting,
+        e_connected
     };
 
     struct sender
     {
         sender(unsigned int max):
-			mStatistics(max),
-			mState(eDisconnected),
-			mTimeoutAccumulator(0),
-			mSendAccumulator(0){};
+			m_stats(max),
+			m_state(e_disconnected),
+			m_timeoutAccumulator(0),
+			m_sendAccumulator(0){};
 
-        state mState;
-        float mTimeoutAccumulator;
-        float mSendAccumulator;
-        address mAddress;
-        ReliabilitySystem mStatistics;
-        FlowControl mFlow;
+        state m_state;
+        float m_timeoutAccumulator;
+        float m_sendAccumulator;
+        address m_address;
+        stats m_stats;
+        flowControl m_flow;
     };
 
-    unsigned short mProtocolId;                                  /// the protocal id
-    float mTimeout;                                              /// how long before someone will time-out
-    unsigned int mMax_sequence;                                  /// max sequence for reliablesystem
-    bool mRunning;                                               /// is this connection running
-    bool connected; ///legacy.
+    unsigned short m_protocolID;                                  /// the protocal id
+    float m_timeout;                                              /// how long before someone will time-out
+    unsigned int m_maxSequence;                                  /// max sequence for reliablesystem
+    bool m_running;                                               /// is this connection running
 
-    Socket mSocket;                                              /// this is a socket
-    std::vector<std::pair<sender*, unsigned short> > mMailList;  /// these are all the connections, and their send keys.
-    std::vector<unsigned short> mKeyPool;                        /// these are keys that can be reused
-    std::vector<unsigned short> mNewConnKeys;                     /// this stores all the new connection's Keys
+    socket m_socket;                                              /// this is a socket
+    std::vector<std::pair<sender*, unsigned short> > m_mailList;  /// these are all the connections, and their send keys.
+    std::vector<unsigned short> m_keyPool;                        /// these are keys that can be reused
+    std::vector<unsigned short> m_newConnKeys;                     /// this stores all the new connection's Keys
 
-    float mSendAccumulator;                                      /// this is so as the rate at which initialisation packets are sent
+    float m_sendAccumulator;                                      /// this is so as the rate at which initialisation packets are sent
                                                                 /// can be maintained
 };
 
