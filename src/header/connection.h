@@ -4,7 +4,9 @@
 #include "stats.h"
 #include "flowControl.h"
 #include "socket.h" /// has address in it.
-#include "packet.h"
+//#include "packet.h"
+#include "readPacket.h"
+#include "writePacket.h"
 
 ///friendly user-data-group encapsulator
 
@@ -17,12 +19,9 @@
 
 namespace net
 {
-
 class connection
 {
 public:
-
-
 
     connection(unsigned short _protocolID, float _timeout, unsigned int _maxSequence = 0xFFFFFFFF );
     virtual ~connection();
@@ -34,20 +33,19 @@ public:
     bool sendPacket(unsigned short _key, float _deltaTime);
     int receivePacket(unsigned int _size);
     int getHeaderSize() const;
-
-    stats& getStats()
-    {
-            if(m_mailList.size() > 0)
-            {
-                return m_mailList.front().first->m_stats;
-            }
-    }
+    unsigned short getMailListSize(void){return m_mailList.size();}
 
 protected:
 
-    packet m_receivePacket;
-    packet m_sendPacket;
+    //TODO make these two packets into a singleton, packet interface... thing.
+    readPacket m_receivePacket;
+    writePacket m_sendPacket;
+
+    unsigned char* m_receiveData;
+    unsigned char* m_sendData;
+
     unsigned int m_port;
+
 private:
 
     enum state

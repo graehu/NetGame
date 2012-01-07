@@ -1,5 +1,6 @@
 #include "header/stats.h"
 using namespace net;
+using namespace std;
 
 stats::stats(unsigned int _maxSequence)
 {

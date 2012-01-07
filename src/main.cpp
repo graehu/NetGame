@@ -4,7 +4,7 @@
 #include <vector>
 #include <SDL/SDL.h>
 
-#include "header/net.h"
+#include "header/netManager.h"
 
 //#define SHOW_ACKS
 
@@ -33,8 +33,9 @@ enum Keys
 
 int main(int argc, char * argv[])
 {
-    network myNet(0xF00D, TimeOut);
+    netManager myNet(0xF00D, TimeOut);
     bool keys[4];
+
 
     if(!(argc >= 2))
     {

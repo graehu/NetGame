@@ -1,23 +1,67 @@
 #ifndef PACKETDEF_H
 #define PACKETDEF_H
 
-#include <typeinfo>
 #include <vector>
+#include <typeinfo>
 #include <cstdio>
 #include <cassert>
 
+namespace net
+{
+
 enum packType
-  {
-    e_bool = 0,
-    e_UChar,
-    e_char,
-    e_UShort,
-    e_short,
-    e_UInt,
-    e_int,
-    e_float,
-    e_double
-  };
+	  {
+		e_bool = 0,
+		e_UChar,
+		e_char,
+		e_UShort,
+		e_short,
+		e_UInt,
+		e_int,
+		e_float,
+		e_double
+	  };
+
+class packetDef;
+class defRegister
+{
+public:
+
+	//TODO think of a way to hide this functionality.
+	unsigned int registerDefinition(packetDef* _definition)
+	{
+		m_definitions.push_back(_definition);
+		return m_definitions.size()-1;
+	}
+	packetDef& getDef(unsigned int _defID);
+	unsigned int getSize(void){return m_definitions.size();}
+
+  char* getNameByType(packType _type);
+  packType getTypeByName(char* _name);
+  unsigned int getTypeSizeByName(char* _name);
+  unsigned int getTypeSizeByPackType(packType _type);
+
+  //singleton
+	static defRegister& instance()
+	{
+		static defRegister* instance;
+		if(!instance)
+			instance = new defRegister();
+		return *instance;
+	}
+
+protected:
+private:
+	defRegister();
+	~defRegister();
+	std::vector<packetDef*> m_definitions;
+
+};
+
+/////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////
 
 class packetDef
 {
@@ -26,34 +70,31 @@ class packetDef
   packetDef();
   ~packetDef();
 
-  void beginPacket(void);
+  void beginDefinition(void);
   template <typename T>
     bool pushType(T _type)
     {
       if(m_packing)
-	{
-	  packType myType;
-	  myType = getTypeByName((char*)typeid(_type).name());
-	  m_packetDefs.back().first.push_back(myType);
-	  m_packetSizeAccumulator += getTypeSizeByPackType(myType);
-	  return false;
-	}
+	  {
+		  packType myType;
+		  myType = defRegister::instance().getTypeByName((char*)typeid(_type).name());
+		  m_defintion.push_back(myType);
+		  m_size += defRegister::instance().getTypeSizeByPackType(myType);
+		  return false;
+	  }
       else
-	{
+	  {
 	  printf("packetDef: pushType(), error need to beginPacket()\n");
 	  return true;
-	}
+	  }
     }
-  unsigned int getPacketDefID(void){assert(m_packing);return m_packetDefs.size()-1;}
-  void endPacket(void);
 
-  char* getMembTypeName(unsigned int _def, unsigned int _member);
-  char* getNameByType(packType _type);
-  packType getTypeByName(char* _name);
-  unsigned int getTypeSizeByName(char* _name);
-  unsigned int getTypeSizeByPackType(packType _type);
-  unsigned int getDefSize(unsigned int _defID);
-  unsigned int size(){return m_packetDefs.size();}
+  void endDefinition(void);
+
+  char* getMembTypeName(unsigned int _member);
+
+  unsigned int getID(void){return m_ID;}
+  unsigned int getSize(){return m_size;}
 
  protected:
 
@@ -61,10 +102,11 @@ class packetDef
 
  private:
 
-  unsigned int m_packetSizeAccumulator;
-  //std::vector<std::pair<std::vector<char*>, unsigned int> > mPacketDefs; /// types(name) and total size
-  std::vector<std::pair<std::vector<packType>, unsigned int> > m_packetDefs; /// types(name) and total size
-};
+  unsigned int m_size;
+  unsigned int m_ID;
 
+  std::vector<packType> m_defintion;
+};
+}
 
 #endif // PACKETDEF_H
