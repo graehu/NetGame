@@ -9,7 +9,7 @@
 #include "stats.h"
 #include "packetqueue.h"
 #include "flowControl.h"
-#include "entity.hpp"
+#include "netEntity.h"
 #include "renderer.h"
 #include "packetDef.h"
 
@@ -52,7 +52,7 @@ namespace net
         bool update(float _deltaTime);
         void draw(void);
         void addEntity(void);
-        entity* getEntity(unsigned int _element);
+        netEntity* getEntity(unsigned int _element);
 	bool getType(void){return m_host;}
         protected:
         private:
@@ -64,7 +64,7 @@ namespace net
 	bool m_host;
         /// this will have to be something like this eventually
         /// vector<pair<entity*,vector<unsigned short(sendKeys)> > >
-        vector<entity*> m_entities;
+        vector<netEntity*> m_entities;
         struct enInfo
         {
             enInfo(unsigned short _enKey = 0, entityState _state = e_uninitialised) :

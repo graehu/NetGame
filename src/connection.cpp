@@ -1,4 +1,5 @@
 #include "header/connection.h"
+#include "header/dataUtils.h"
 
 using namespace net;
 using namespace std;
@@ -292,7 +293,8 @@ int connection::receivePacket(unsigned int _size)
   if(initPacket)
     {
       //printf("Received init packet \n");
-      security = m_receivePacket.readUShort(2); ///the key they think i sent them.
+	  security = dataUtils::instance().readUShort(&packet[2]);
+      //security = m_receivePacket.readUShort(2); ///the key they think i sent them.
 
       if(security < m_mailList.size())
 	{
@@ -318,10 +320,11 @@ int connection::receivePacket(unsigned int _size)
 	      /// the one that belongs to this sender
 	      /// set his sent key to what it's telling you
 	      /// then check if it is sending the Receive key correctly
-	      security = m_receivePacket.readUShort(4);
+		  security = dataUtils::instance().readUShort(&packet[4]);
+	      //security = m_receivePacket.readUShort(4);
 	      m_mailList[m_newConnKeys[i]].second = security;
-
-	      security = m_receivePacket.readUShort(2);
+	      security = dataUtils::instance().readUShort(&packet[2]);
+	      //security = m_receivePacket.readUShort(2);
 
 	      if(security == m_newConnKeys[i])
                 {
@@ -359,7 +362,8 @@ int connection::receivePacket(unsigned int _size)
       ///if it is a new connection then give it a key if there is one spare in the key pool
       if(!m_keyPool.empty())
         {
-	  security = m_receivePacket.readUShort(4);
+      security = dataUtils::instance().readUShort(&packet[4]);
+	  //security = m_receivePacket.readUShort(4);
 	  m_mailList[m_keyPool.back()].first->m_state = e_connecting;
 	  m_mailList[m_keyPool.back()].first->m_address = n_sender;
 	  m_mailList[m_keyPool.back()].first->m_timeoutAccumulator = 0;
@@ -373,7 +377,8 @@ int connection::receivePacket(unsigned int _size)
         }
       /// printf("client connecting for first time \n");
 
-      security = m_receivePacket.readUShort(4);
+      security = dataUtils::instance().readUShort(&packet[4]);
+      //security = m_receivePacket.readUShort(4);
 
       sender* n_mailer = new sender(m_maxSequence);
       n_mailer->m_address = n_sender;
@@ -386,7 +391,8 @@ int connection::receivePacket(unsigned int _size)
     }
   else
     {
-      security = m_receivePacket.readUShort(2);
+	  security = dataUtils::instance().readUShort(&packet[2]);
+      //security = m_receivePacket.readUShort(2);
 
       if(security > m_mailList.size())
 	return 0;
@@ -437,16 +443,24 @@ int connection::receivePacket(unsigned int _size)
         }
 
 
+
       /// unsigned short sendKey = m_receivePacket.readUShort(2); /// removed because i don't think it's needed anymore
-      unsigned int packet_sequence = m_receivePacket.readUInteger(4);
-      unsigned int packet_ack = m_receivePacket.readUInteger(8);
-      unsigned int packet_ack_bits = m_receivePacket.readUInteger(12);
+
+      unsigned int packet_sequence = dataUtils::instance().readUInteger(&packet[4]);
+      unsigned int packet_ack = dataUtils::instance().readUInteger(&packet[8]);
+      unsigned int packet_ack_bits = dataUtils::instance().readUInteger(&packet[12]);
+
+      //unsigned int packet_sequence = m_receivePacket.readUInteger(4);
+      //unsigned int packet_ack = m_receivePacket.readUInteger(8);
+      //unsigned int packet_ack_bits = m_receivePacket.readUInteger(12);
 
       m_mailList[security].first->m_stats.packetReceived(packet_sequence, bytes_read - 16); ///WHY DOES THIS SAY 14?!.... it doesn't anymore...
       m_mailList[security].first->m_stats.processAck(packet_ack, packet_ack_bits);
       m_mailList[security].first->m_timeoutAccumulator = 0;
-
       //memcpy(data, &packet[mHeader], bytes_read - mHeader);
+
+      m_receiveData = packet;
+      m_receivePacket.setEnd(bytes_read);
 
       return bytes_read;
     }
