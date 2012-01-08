@@ -6,7 +6,7 @@
 #include <vector>
 
 
-#include "packetDef.h"
+#include "dataUtils.h"
 
 
 namespace net
@@ -24,11 +24,24 @@ class packet
 	bool setAlloc(unsigned int _alloc);
 	void setEnd(unsigned int _end){if(_end >! m_alloc && _end > m_headerSize)m_end = _end;}
 
-
 	unsigned int getAlloc(void) {return m_alloc;}
 	unsigned int getEnd(void){return m_end;}
 	unsigned char* getData(void){return m_data;}
 	unsigned int getHeaderSize(void){return m_headerSize;}
+
+	template <typename T>
+	void iterWrite(T _type)
+	{
+		dataUtils::instance().writeData(_type, &m_data[m_end]);
+		m_end += sizeof(T);
+	}
+	template <typename T>
+	T iterRead(void)
+	{
+		T temp =  dataUtils::instance().readData<T>(&m_data[m_end]);
+		m_end += sizeof(T);
+		return temp;
+	}
 
 	protected:
 
@@ -43,9 +56,6 @@ class packet
 	private:
 
 	unsigned int m_sizeAccumulator;
-
-
-    /// header related information.
 	unsigned int m_headerSize;   /// = 16;
 
 

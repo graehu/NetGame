@@ -12,7 +12,6 @@ using namespace std;
 using namespace net;
 
 const int ServerPort = 8000;
-const int ClientPort = 8001;
 const unsigned short ProtocolId = 0xf00d;//80;
 const float DeltaTime = 1.0f/60.0f;
 const float SendRate = 1.0f / 30.0f;
@@ -89,6 +88,7 @@ int main(int argc, char * argv[])
                 myNet.getEntity(0)->setCommands(myNet.getEntity(0)->getCommands()|8);
             }
             else{myNet.getEntity(0)->setCommands(myNet.getEntity(0)->getCommands()&(255-8));}
+
         }
         myNet.draw();
     } 

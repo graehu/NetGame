@@ -3,15 +3,14 @@
 
 /// Include
 
-#include "address.h"
-#include "socket.h"
+//#include "address.h"
+//#include "socket.h"
 #include "connection.h"
 #include "stats.h"
-#include "packetqueue.h"
-#include "flowControl.h"
+//#include "packetqueue.h"
+//#include "flowControl.h"
 #include "netEntity.h"
 #include "renderer.h"
-#include "packetDef.h"
 
 
 using namespace std;
@@ -42,6 +41,15 @@ namespace net
         e_updating
     };
 
+    enum packets
+    {
+    	e_initPacket = 0,
+    	e_playerUpdatePacket,
+    	e_totalPackets, //e_entityUpdate after this on purpose
+    	e_entityUpdatePacket //This is a special event, it assumes the rest of the packet is entity updates
+
+    };
+
     class network : protected connection
     {
         public:
@@ -56,10 +64,8 @@ namespace net
 	bool getType(void){return m_host;}
         protected:
         private:
-
         void initEntity(unsigned short _packetSender, unsigned short _accessKey);
 
-        packetDef m_defines;
 
 	bool m_host;
         /// this will have to be something like this eventually

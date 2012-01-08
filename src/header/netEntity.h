@@ -4,7 +4,8 @@
 #include <vector>
 #include "entity.h"
 
-#include "packetDef.h"
+//#include "packetDef.h"
+#include "packet.h"
 
 namespace net
 {
@@ -17,9 +18,8 @@ class netEntity : public entity
 
 		//TODO turn this into an interface, virtual functions.
 		//Or just overide... i dunno.
-		void readPacket(unsigned char* _data);
-		void writePacket(unsigned char* _data);
-		unsigned short getDefSize(void){return m_define.getSize();}
+		void readPacket(packet* _data);
+		void writePacket(packet* _data);
 
 		unsigned char getCommands(void){return m_command;}
 		void setCommands(unsigned char command){m_command = command;}
@@ -28,8 +28,6 @@ class netEntity : public entity
 	protected:
 
 	private:
-
-		packetDef m_define;
     	unsigned char m_command;
 
 };

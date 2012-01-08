@@ -7,36 +7,18 @@ netEntity::netEntity()
 {
     m_type = e_netEntity;
     m_command = ' ';
-
-	static bool s_defInit = false;
-    if(!s_defInit)
-    {
-    	////////////////////////////////////////////////////////
-    	//update packet.
-    	m_define.beginDefinition();
-    		for(unsigned int i = 0; i < 2; i++)
-    			m_define.pushType((float)0);	 // m_x, m_y
-    	m_define.pushType((unsigned char)0); // m_commands
-    	m_define.endDefinition();
-    	//
-    	////////////////////////////////////////////////////////
-		printf("NetEntity: I should only see this once per console\n");
-		s_defInit =  true;
-    }
 }
 
-void netEntity::readPacket(unsigned char* _data)
+void netEntity::readPacket(packet* _packet)
 {
-	m_x = (float)dataUtils::instance().readUInteger(&_data[0]);
-	m_y = (float)dataUtils::instance().readUInteger(&_data[4]);
-	m_command = dataUtils::instance().readUChar(&_data[8]);
+	m_x = (float)_packet->iterRead<int>();
+	m_y = (float)_packet->iterRead<int>();
 }
 
-void netEntity::writePacket(unsigned char* _data)
+void netEntity::writePacket(packet* _packet)
 {
-	dataUtils::instance().writeData((unsigned int)m_x, &_data[0]);
-	dataUtils::instance().writeData((unsigned int)m_x, &_data[sizeof(unsigned int)]);
-	dataUtils::instance().writeData(m_command, &_data[sizeof(unsigned int)*2]);
+	_packet->iterWrite((unsigned int)m_x);
+	_packet->iterWrite((unsigned int)m_y);
 }
 
 void netEntity::move(void)

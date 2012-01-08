@@ -12,6 +12,9 @@ connection::connection(unsigned short _protocolID, float _timeout, unsigned int 
   m_running = false;
   m_mailList.clear();
   m_sendAccumulator = 0;
+  m_receivePacket.setAlloc(256);
+  m_sendPacket.setAlloc(256);
+  m_bytesRead = 0;
 }
 
 connection::~connection()
@@ -270,9 +273,9 @@ int connection::receivePacket(unsigned int _size)
   m_receivePacket.setAlloc(_size);
   unsigned char* packet = m_receivePacket.getData();
   // push this directly into m_receivePacket.
-  int bytes_read = m_socket.receive(n_sender, packet, _size);
+  int l_bytesRead = m_socket.receive(n_sender, packet, _size);
 
-  if (bytes_read == 0)
+  if (l_bytesRead == 0)
     return 0;
 
   m_receivePacket.setEnd(m_receivePacket.getHeaderSize()); /// only reading the mHeader for now
@@ -442,8 +445,6 @@ int connection::receivePacket(unsigned int _size)
             }
         }
 
-
-
       /// unsigned short sendKey = m_receivePacket.readUShort(2); /// removed because i don't think it's needed anymore
 
       unsigned int packet_sequence = dataUtils::instance().readUInteger(&packet[4]);
@@ -454,15 +455,17 @@ int connection::receivePacket(unsigned int _size)
       //unsigned int packet_ack = m_receivePacket.readUInteger(8);
       //unsigned int packet_ack_bits = m_receivePacket.readUInteger(12);
 
-      m_mailList[security].first->m_stats.packetReceived(packet_sequence, bytes_read - 16); ///WHY DOES THIS SAY 14?!.... it doesn't anymore...
+      m_mailList[security].first->m_stats.packetReceived(packet_sequence, l_bytesRead - 16); ///WHY DOES THIS SAY 14?!.... it doesn't anymore...
       m_mailList[security].first->m_stats.processAck(packet_ack, packet_ack_bits);
       m_mailList[security].first->m_timeoutAccumulator = 0;
       //memcpy(data, &packet[mHeader], bytes_read - mHeader);
 
-      m_receiveData = packet;
-      m_receivePacket.setEnd(bytes_read);
 
-      return bytes_read;
+      //m_receivePacket.setEnd(bytes_read);
+
+      m_bytesRead = l_bytesRead;
+
+      return l_bytesRead;
     }
 
   return 0;

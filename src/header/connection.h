@@ -34,15 +34,13 @@ public:
     int receivePacket(unsigned int _size);
     int getHeaderSize() const;
     unsigned short getMailListSize(void){return m_mailList.size();}
+    unsigned int getBytesRead(void){return m_bytesRead;}
 
 protected:
 
     //TODO make these two packets into a singleton, packet interface... thing.
     readPacket m_receivePacket;
     writePacket m_sendPacket;
-
-    unsigned char* m_receiveData;
-    unsigned char* m_sendData;
 
     unsigned int m_port;
 
@@ -71,6 +69,7 @@ private:
         flowControl m_flow;
     };
 
+    unsigned int m_bytesRead;
     unsigned short m_protocolID;                                  /// the protocal id
     float m_timeout;                                              /// how long before someone will time-out
     unsigned int m_maxSequence;                                  /// max sequence for reliablesystem

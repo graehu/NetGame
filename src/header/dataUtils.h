@@ -23,6 +23,19 @@ public:
     char readChar(unsigned char* _data);
     unsigned char readUChar(unsigned char* _data);
 
+	template <typename T>
+    T readData(unsigned char* _data)
+     {
+       unsigned int size = sizeof(T);
+       if(size == 1)
+         return ((T)*_data);
+       if(size == 2)
+         return  (((T)_data[0] << 8) | ((T)_data[1]));
+       if(size == 4)
+           return (((T)_data[0] << 24) | ((T)_data[1] << 16) |
+                     ((T)_data[2] << 8)  | ((T)_data[3]));
+       return 0;
+       }
 
 	template <typename T>
     bool writeData(T _type, unsigned char* _data)

@@ -1,5 +1,6 @@
 #include "header/readPacket.h"
 #include "header/dataUtils.h"
+
 using namespace net;
 
 unsigned short readPacket::readProtocolId(void)

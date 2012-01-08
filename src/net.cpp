@@ -6,45 +6,16 @@ using namespace net;
 network::network(unsigned short _protocolID, float _timeout , unsigned int _maxSequence) :
   connection(_protocolID, _timeout, _maxSequence)
 {
-  m_packetSize = 256; ///bad, should be passed in constructor or something.
+  m_packetSize = 256;
 }
 
 network::~network()
 {
 }
 
-
-
-///this type bull isn't a good solution.
+///TODO this type boolean isn't a good solution.
 bool network::init(bool _host, int _port)
 {
-
-  //this packet definition shit should be done outside of the network class.
-  ///////////////////////////////////////////////////////////////////////////////////////////////////////////
-  ///////////////////////////////////////////////////////////////////////////////////////////////////////////
-  ///////////////////////////////////////////////////////////////////////////////////////////////////////////
-  /// packet1 update ///updating is the mooooost important.
-  m_defines.beginDefinition();
-  m_defines.pushType((unsigned short)0); /// access key
-  m_defines.pushType((int)0);            /// posx
-  m_defines.pushType((int)0);            /// posy
-  m_defines.pushType((int)0);            /// velox
-  m_defines.pushType((int)0);            /// veloy
-  m_defines.pushType((unsigned char)0);  /// commands
-  m_defines.endDefinition();
-  ///packet2 playerUpdate /// the button presses.
-  m_defines.beginDefinition();
-  m_defines.pushType((unsigned short)0); /// access key
-  m_defines.pushType((unsigned char)0);  /// commands
-  m_defines.endDefinition();
-  /// packet3 request ///second most important... in third place
-  m_defines.beginDefinition();
-  m_defines.pushType((unsigned short)0); /// access key
-  m_defines.pushType((unsigned short)0); /// request type ///check if it exists before packing.
-  m_defines.endDefinition();
-  ///////////////////////////////////////////////////////////////////////////////////////////////////////////
-  ///////////////////////////////////////////////////////////////////////////////////////////////////////////
-  ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
   if(!start(_port))
     {
@@ -57,7 +28,6 @@ bool network::init(bool _host, int _port)
       m_host = false;
       netEntity* me = new netEntity;
       m_entities.push_back(me);
-
 	
       address myAddress(127,0,0,1,8000); //this shit should be passed.
       connect(myAddress);
@@ -67,12 +37,7 @@ bool network::init(bool _host, int _port)
     }
 
   if(_host == true)
-    {
       m_host = true;
-      //entity* me = new entity;
-      //mEntities.push_back(me);
-    }
-
 
       
   return false;
@@ -81,130 +46,91 @@ bool network::init(bool _host, int _port)
 bool network::update(float _deltaTime)
 {
   connection::update(_deltaTime);
-	    
+
+  /// ///////////////////////
+  /// Packet read Section////
+  /// ///////////////////////
+
   while(receivePacket(m_packetSize) != 0)
-    {
-      //printf("oh dear god, the horror\n");
-      ///first the connection checks if it has any packets to read
-      m_receivePacket.setEnd(m_packetSize);
-      //m_receivePacket.analysePacket();
+  {
+	unsigned short packetSender = m_receivePacket.readKey();
+	unsigned short accessKey = 0;
+	unsigned short entityKey = 0;
 
-      unsigned short packetSender = m_receivePacket.readKey();
-      unsigned short offset = m_receivePacket.getHeaderSize();
-      unsigned short enType = 0;
-      unsigned short accessKey = 0;
-      unsigned char commands = 0;
-      unsigned int j = 0;
-      int xvelocity = 0;
-      int yvelocity = 0;
-      int xpos = 0;
-      int ypos = 0;
-      bool data = true;
-
-      unsigned char* l_data =  &m_receivePacket.getData()[m_receivePacket.getHeaderSize()];
-
-      /// //////////////////////
-      /// Packet Read Section///
-      /// //////////////////////
-
-      while(data)
+	while(m_receivePacket.getEnd() < getBytesRead())
 	{
-	  //printf("curious\n");
-	 /* switch(m_receivePacket.getSectionType(j))
-	    {
-	    case 0:
-	      ///empty
-	      data = false;
-	      break;
-	    case 1:
-	      /// update
-	      //m_receivePacket.getMembData(j,1,enType);
-
-	      m_receivePacket.getMembData(j,1,accessKey);
-
-	      initEntity(packetSender, accessKey);
-
-	      if (m_host == false)
+		packets sectionType = (packets)m_receivePacket.iterRead<unsigned short>();
+		switch(sectionType)
 		{
-		  xpos = m_receivePacket.readInteger(offset+4);
-		  ypos = m_receivePacket.readInteger(offset+8);
-		  xvelocity = m_receivePacket.readInteger(offset+12);
-		  yvelocity = m_receivePacket.readInteger(offset+16);
-		  m_entities[m_enUpdate[packetSender][accessKey].m_enKey]->setXPos(xpos);
-		  m_entities[m_enUpdate[packetSender][accessKey].m_enKey]->setYPos(ypos);
-		  //m_entities[m_enUpdate[packetSender][accessKey].m_enKey]->setXVelocity(xvelocity);
-		  //m_entities[m_enUpdate[packetSender][accessKey].m_enKey]->setYVelocity(yvelocity);
+		case e_initPacket:
+			break;
+		case e_playerUpdatePacket:
+
+			accessKey = m_receivePacket.iterRead<unsigned short>();
+			initEntity(packetSender, accessKey);
+			if (m_host == true)
+			{
+				entityKey = m_enUpdate[packetSender][accessKey].m_enKey;
+				m_entities[entityKey]->setCommands(m_receivePacket.iterRead<unsigned char>());
+			}
+
+			break;
+		case e_entityUpdatePacket:
+			while(m_receivePacket.getEnd() < getBytesRead())
+				{
+					accessKey = m_receivePacket.iterRead<unsigned short>();
+				    initEntity(packetSender, accessKey);
+
+				    entityKey = m_enUpdate[packetSender][accessKey].m_enKey; //entity key
+				    if(m_host == false)
+				    	m_entities[entityKey]->readPacket(&m_receivePacket);
+				}
+			break;
 		}
-	      //else{printf("do i want to see this... hmm\n");}
-	      break;
-	    case 2:
-	      ///update
-	      m_receivePacket.getMembData(j,1,accessKey);
-
-	      initEntity(packetSender, accessKey);
-
-	      if (m_host == true)
-		{
-		  m_receivePacket.getMembData(j, 2, commands);
-		  m_entities[m_enUpdate[packetSender][accessKey].m_enKey]->setCommands(commands);
-		  //mEntities[mEnUpdate[packetSender][accessKey].mEnKey]->move();
-
-		}
-	      break;
-	    }
-	  j++;
-	  offset = m_receivePacket.getSectionStart(j);*/
-
 	}
-    }
+  }
   /// ///////////////////////
   /// Packet Write Section///
   /// ///////////////////////
-
-  for(int i = 0; i < m_enUpdate.size(); i++)
+  {
+  unsigned short entityKey = 0;
+  for(unsigned short i = 0; i < m_enUpdate.size(); i++)
     {
-      for(int ii = 0; ii < m_enUpdate[i].size(); ii++)
+	  if(m_host)
+    	  m_sendPacket.iterWrite((unsigned short)e_entityUpdatePacket);
+
+      for(unsigned short ii = 0; ii < m_enUpdate[i].size(); ii++)
 	{
-	  /// check if entity is initialised, if so, send update
-	  /// packet
 	  if(m_enUpdate[i][ii].m_state == e_updating)
 	    {
+
 	      if(m_host == true)
 		{
-		  /*m_sendPacket.beginPacketData(1);
-		  m_sendPacket.safePushData((unsigned short)ii);
-		  m_sendPacket.safePushData((int)m_entities[m_enUpdate[i][ii].m_enKey]->getXPos());
-		  m_sendPacket.safePushData((int)m_entities[m_enUpdate[i][ii].m_enKey]->getYPos());
-		  m_sendPacket.safePushData((int)m_entities[m_enUpdate[i][ii].m_enKey]->getXVelocity());
-		  m_sendPacket.safePushData((int)m_entities[m_enUpdate[i][ii].m_enKey]->getYVelocity());
-		  m_sendPacket.safePushData((unsigned char)m_entities[m_enUpdate[i][ii].m_enKey]->getCommands());
-		  m_sendPacket.endPacketData();*/
-
+	      entityKey = m_enUpdate[i][ii].m_enKey;
+	      m_sendPacket.iterWrite(ii);
+	      m_entities[entityKey]->writePacket(&m_sendPacket);
 		}
 
 	      if(m_host == false && ii == 0)
 		{
-		  /*m_sendPacket.beginPacketData(2);
-		  m_sendPacket.safePushData((unsigned short)ii);
-		  m_sendPacket.safePushData((unsigned char)m_entities[m_enUpdate[i][ii].m_enKey]->getCommands());
-		  m_sendPacket.endPacketData();*/
+
+	    	  entityKey = m_enUpdate[i][ii].m_enKey;
+	    	  m_sendPacket.iterWrite((unsigned short)e_playerUpdatePacket);
+	    	  m_sendPacket.iterWrite(ii);
+	    	  m_sendPacket.iterWrite(m_entities[entityKey]->getCommands());
 		}
 	    }
 
-	  // if(mEnUpdate[i][ii].mState == eUninitialised)
 	}
-      /// need REAL delta time for packet...
-      //if(mHost == true)
-      //{
-      //    printf("Sending\n");
-      //}
-      m_sendPacket.pushData((unsigned short)0);
+
       sendPacket(i, _deltaTime);
       m_sendPacket.clearPacket();
     }
 
   for(int i = 0; i < m_entities.size(); i++)
     m_entities[i]->move();
+
+  }
 		
   return false;
 		  
@@ -212,75 +138,33 @@ bool network::update(float _deltaTime)
 
 void network::initEntity(unsigned short _packetSender, unsigned short _accessKey)
 {
-  /// /////////////////////////////////////////////////////////
-  /// make sure that there is an update slot for this sender///
-  /// and push back                                         ///
-  /// /////////////////////////////////////////////////////////
-  while(_packetSender >= m_enUpdate.size()) /// if i don't have a place for this sender, make one.
+
+  while(_packetSender >= m_enUpdate.size())
     {
       m_enUpdate.push_back(vector<enInfo>());
     }
-  /// ////////////////////////////////////////////////////
-  /// now i want to check if i have this entity or not.///
-  /// ////////////////////////////////////////////////////
 
-  if(_accessKey == m_enUpdate[_packetSender].size())
+   if(_accessKey == m_enUpdate[_packetSender].size())
     {
-
-      /// the important thing to realise is that you are trying to keep each packet senders
-      /// list the same on BOTH sides, so, the servers access key will be the same as the clients
-      /// the only thing that should change is the entity id.
-
-      /// i want him to know about all entities, for now so see how many entities there are
-      /// and push that many onto his unknown list.
-
 
       netEntity* nEntity = new netEntity;
       m_entities.push_back(nEntity);
-      if(m_port == 8005)printf("8005 initialising entity\n");
+      if(m_host)printf("initialising entity\n");
       m_enUpdate[_packetSender].push_back(enInfo((m_entities.size()-1),e_updating));
-      //if(mHost == true)
 
-      /*for(int i = 0; i < mEntities.size(); i++)
-	{
-	if(i >= mEnUpdate[packetSender].size())
-	{
-	mEnUpdate[packetSender].push_back(enInfo(i,eUpdating));
-	printf("pushing back entity to be initialised\n");
-	}
 
-	}*/
 
       for(unsigned int i = 0; i < m_entities.size(); i++)
 	{
 	  if(i >= m_enUpdate[_packetSender].size())
 	    {
-	      /// this is the fix for the first client bug.
-	      /// basically, because the main character is always
-	      /// pushed back as zero it means that the ACTUAL entity zero
-	      /// will never get into this if. (because it only gets in if
-	      /// i >= number of updateEns, which there is always one of
-	      /// by this point. so zero wont get in, because it's less than one)
-	      /// the reason for the following behaviour was because the same enkey
-	      /// was being pushed back twice. the packetsender's en key.
-	      /// so, to fix this, push back 0 if you come across the packetsender's
-	      /// enKey.
 	      if(i == m_entities.size()-1)
 		m_enUpdate[_packetSender].push_back(enInfo(0,e_updating));
 	      else
 		m_enUpdate[_packetSender].push_back(enInfo(i,e_updating));
 	      printf("pushing back Entity to be initialised\n");
-	      //printf("");
-
 	    }
-
 	}
-
-      /// this part should change if you don't want to tell everybody about this new entity
-      /// but i do.
-
-      /// ok so, someone new comes in, number one
-      /// all people from now on will be told about number one.
 
       for(int i = 0; i < m_enUpdate.size(); i++)
 	{
@@ -290,7 +174,6 @@ void network::initEntity(unsigned short _packetSender, unsigned short _accessKey
 	    }
 	}
 
-      /// and now tell the sender about everyone else.
 
     }
 }
@@ -321,7 +204,8 @@ void network::addEntity(void)
 
   netEntity* nEntity = new netEntity;
   m_entities.push_back(nEntity);
-  //mEnUpdate[packetSender].push_back(enInfo((mEntities.size()-1),eInitialised));
+
+  m_enUpdate[0].push_back(enInfo((m_entities.size()-1),e_updating));
 
   for(int i = 0; i < m_entities.size(); i++)
     {
